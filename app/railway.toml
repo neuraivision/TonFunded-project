@@ -1,9 +1,8 @@
 [build]
 builder = "RAILPACK"
+# Setting the install command to true effectively skips the install step
+RAILPACK_INSTALL_CMD = "true"
 buildCommand = "npm install --legacy-peer-deps && npm run build"
-
-[build.env]
-RAILPACK_INSTALL_CMD = "npm install --legacy-peer-deps"
 
 [deploy]
 startCommand = "npx serve -s dist -l $PORT"
