@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
@@ -15,7 +15,7 @@ import {
   Wallet,
   TrendingUp,
   Flame,
-} from 'lucide-react';
+, Camera } from 'lucide-react';
 import { useTonWallet } from '@/hooks/useTonWallet';
 import { useReferralStore } from '@/stores/referralStore';
 import { useTradingStore } from '@/stores/tradingStore';
@@ -115,15 +115,33 @@ export default function Profile() {
 
       {/* ── Profile header ─────────────────────────────────────────────────── */}
       <div className="flex items-center gap-4 mb-5">
-        {/* Avatar — real logo with rounded shape */}
+        {/* Avatar — clickable to change photo */}
         <div className="relative flex-shrink-0">
-          <img
-            src="/logo-192.png"
-            alt="Profile"
-            className="w-16 h-16 rounded-2xl object-cover shadow-md"
-          />
-          {/* Online / connected indicator dot */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="relative block w-16 h-16 rounded-2xl overflow-hidden shadow-md active:opacity-80 transition-opacity focus:outline-none"
+            aria-label="Change profile photo"
+          >
+            <img
+              src={avatarSrc}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+            {/* Camera overlay */}
+            <div className="absolute inset-0 bg-black/30 flex items-end justify-center pb-1.5 opacity-0 hover:opacity-100 transition-opacity">
+              <Camera size={14} className="text-white" />
+            </div>
+          </button>
+          {/* Status dot */}
           <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`} />
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleAvatarChange}
+          />
         </div>
 
         <div className="flex-1 min-w-0">

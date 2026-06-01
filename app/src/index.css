@@ -262,3 +262,40 @@
     display: none;
   }
 }
+
+/* ── Dark mode ───────────────────────────────────────────────────────────────
+   Activated by .dark class on <html>, set by TelegramThemeSync in main.tsx
+   when Telegram's colorScheme is 'dark' or OS prefers dark.              */
+.dark {
+  --bg-primary: #0f0f0f;
+  --bg-card: #1a1a1a;
+  --bg-accent: #4DB8FF;
+  --bg-accent-light: rgba(77,184,255,0.12);
+  --bg-success: rgba(22,163,74,0.15);
+  --bg-warning: rgba(217,119,6,0.15);
+  --bg-danger: rgba(220,38,38,0.15);
+  --bg-muted: #2a2a2a;
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-success: #4ade80;
+  --text-danger: #f87171;
+  --text-warning: #fbbf24;
+  --text-white: #ffffff;
+
+  --border-default: rgba(255,255,255,0.08);
+  --border-accent: rgba(77,184,255,0.35);
+}
+
+/* Dark mode surface overrides for components using hardcoded Tailwind classes */
+.dark .bg-white        { background-color: #1a1a1a !important; }
+.dark .bg-gray-50      { background-color: #222222 !important; }
+.dark .bg-gray-100     { background-color: #2a2a2a !important; }
+.dark .border-gray-100,
+.dark .border-gray-200 { border-color: rgba(255,255,255,0.08) !important; }
+.dark .text-gray-900,
+.dark .text-gray-800   { color: #f5f5f5 !important; }
+.dark .text-gray-500,
+.dark .text-gray-600   { color: #a1a1aa !important; }
+.dark header.bg-white  { background-color: #111111 !important; border-color: rgba(255,255,255,0.08) !important; }

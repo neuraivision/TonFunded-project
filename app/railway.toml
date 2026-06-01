@@ -1,8 +1,4 @@
 [build]
-builder = "RAILPACK"
-[build.env]
-RAILPACK_INSTALL_CMD = "npm ci --legacy-peer-deps"
-[build]
 builder = "nixpacks"
 buildCommand = "npm install --legacy-peer-deps && npm run build"
 

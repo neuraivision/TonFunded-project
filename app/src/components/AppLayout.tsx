@@ -23,25 +23,33 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-primary-app flex flex-col max-w-lg mx-auto">
-      {/* Top header */}
-      <header className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top,16px)] pb-3 bg-white border-b border-default sticky top-0 z-40">
-        <div className="flex items-center gap-2">
-          <img src="/logo-48.png" alt="TonFunded" className="w-7 h-7 rounded-lg object-cover" />
+      {/* Top header — increased height & overflow visible so badge never clips */}
+      <header className="flex items-center justify-between px-4 bg-white border-b border-default sticky top-0 z-40"
+        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px) + 10px, 14px)', paddingBottom: '12px' }}>
+
+        <div className="flex items-center gap-2.5">
+          <img
+            src="/logo-48.png"
+            alt="TonFunded"
+            className="w-8 h-8 rounded-xl object-cover"
+          />
           <span className="text-base font-bold text-primary-app">{title}</span>
         </div>
 
-        {/* Notification bell */}
-        <button
-          onClick={() => setNotifOpen(true)}
-          className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
-        >
-          <Bell size={17} className="text-secondary" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
+        {/* Notification bell — extra padding so badge never clips */}
+        <div className="pr-1 pt-1">
+          <button
+            onClick={() => setNotifOpen(true)}
+            className="relative w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
+          >
+            <Bell size={17} className="text-secondary" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
       </header>
 
       {/* Page content */}
