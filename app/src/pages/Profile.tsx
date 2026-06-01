@@ -15,7 +15,8 @@ import {
   Wallet,
   TrendingUp,
   Flame,
-, Camera } from 'lucide-react';
+  Camera,
+} from 'lucide-react';
 import { useTonWallet } from '@/hooks/useTonWallet';
 import { useReferralStore } from '@/stores/referralStore';
 import { useTradingStore } from '@/stores/tradingStore';
@@ -107,6 +108,18 @@ export default function Profile() {
 
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(true);
+  const [avatarSrc, setAvatarSrc] = useState<string>('/logo-192.png');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) setAvatarSrc(ev.target.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const profitPct = ((balance - startingBalance) / startingBalance) * 100;
 

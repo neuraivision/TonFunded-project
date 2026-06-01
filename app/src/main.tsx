@@ -7,11 +7,13 @@ import './index.css';
 
 function TelegramThemeSync() {
   useEffect(() => {
-    const tg = (window as any).Telegram?.WebApp;
-
     const applyTheme = () => {
-      const scheme = tg?.colorScheme ?? 
+      // Re-read WebApp each time — Telegram updates it in place
+      const tg = (window as any).Telegram?.WebApp;
+      const scheme =
+        tg?.colorScheme ??
         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
       if (scheme === 'dark') {
         document.documentElement.classList.add('dark');
       } else {
@@ -19,19 +21,29 @@ function TelegramThemeSync() {
       }
     };
 
-    // Apply immediately
+    // Apply immediately on mount
     applyTheme();
 
+    // Also fire after a short delay — Telegram WebApp can be slow to expose colorScheme
+    const timer = setTimeout(applyTheme, 300);
+
     // Listen for Telegram theme changes
-    if (tg) {
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg?.onEvent) {
       tg.onEvent('themeChanged', applyTheme);
-      return () => tg.offEvent('themeChanged', applyTheme);
+      return () => {
+        clearTimeout(timer);
+        tg.offEvent('themeChanged', applyTheme);
+      };
     }
 
-    // Fallback: listen to OS preference changes when outside Telegram
+    // Fallback: OS preference changes (for browser testing)
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     mq.addEventListener('change', applyTheme);
-    return () => mq.removeEventListener('change', applyTheme);
+    return () => {
+      clearTimeout(timer);
+      mq.removeEventListener('change', applyTheme);
+    };
   }, []);
 
   return null;
