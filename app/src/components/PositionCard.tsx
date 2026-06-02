@@ -92,7 +92,7 @@ function RapidSellButton({
 // ── Main component ────────────────────────────────────────────────────────
 
 export default function PositionCard({ position }: Props) {
-  const { rapidSell, setBreakeven, runRiskCheck } = useTradingStore();
+  const { partialClose, closePosition, setBreakeven, runRiskCheck } = useTradingStore();
 
   const [expanded, setExpanded] = useState(false);
   const [showSlippage, setShowSlippage] = useState(false);
@@ -116,13 +116,17 @@ export default function PositionCard({ position }: Props) {
   // Handle rapid sell with risk check gate
   const handleRapidSell = (percent: number) => {
     const estimatedClose = Math.abs(position.pnl) * (percent / 100);
-    const result = runRiskCheck(estimatedClose);
+    const result = runRiskCheck(position.id, percent);
     setPendingClose({ percent, riskResult: result });
   };
 
   const confirmSell = () => {
     if (!pendingClose) return;
-    rapidSell(position.id, pendingClose.percent);
+    if (pendingClose.percent >= 100) {
+      closePosition(position.id);
+    } else {
+      partialClose(position.id, pendingClose.percent);
+    }
     setPendingClose(null);
   };
 

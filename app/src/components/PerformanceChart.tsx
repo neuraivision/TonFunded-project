@@ -12,7 +12,8 @@ const data = [
 ];
 
 export default function PerformanceSummary() {
-  const { winRate, profitFactor, totalTrades, bestTrade } = useTradingStore();
+  const { stats } = useTradingStore();
+  const { winRate, profitFactor, totalTrades, bestTrade } = stats;
 
   return (
     <div className="card-base">
