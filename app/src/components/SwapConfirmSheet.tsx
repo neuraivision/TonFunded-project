@@ -29,7 +29,7 @@ function DetailRow({
       <div className="flex items-center gap-1">
         <span className="text-sm text-secondary">{label}</span>
         {tooltip && (
-          <Info size={12} className="text-tertiary flex-shrink-0" title={tooltip} />
+          <span title={tooltip}><Info size={12} className="text-tertiary flex-shrink-0" /></span>
         )}
       </div>
       <span

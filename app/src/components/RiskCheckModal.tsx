@@ -101,7 +101,7 @@ export default function RiskCheckModal({
         {/* Blockers */}
         {result.blockers.length > 0 && (
           <div className="space-y-2 mb-4">
-            {result.blockers.map((blocker, i) => (
+            {result.blockers.map((blocker: string, i: number) => (
               <div
                 key={i}
                 className="flex items-start gap-2.5 bg-red-50 rounded-xl p-3"
@@ -116,7 +116,7 @@ export default function RiskCheckModal({
         {/* Warnings */}
         {result.warnings.length > 0 && (
           <div className="space-y-2 mb-4">
-            {result.warnings.map((warning, i) => (
+            {result.warnings.map((warning: string, i: number) => (
               <div
                 key={i}
                 className="flex items-start gap-2.5 bg-amber-50 rounded-xl p-3"

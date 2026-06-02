@@ -44,6 +44,9 @@ interface TradingState {
   addActivity: (item: Omit<ActivityItem, 'id'>) => void;
   dismissDrawdownAlert: () => void;
   recomputeStats: () => void;
+  updateSlippage: (id: string, slippage: number) => void;
+  setBreakeven: (id: string) => void;
+  runRiskCheck: (id: string, closePercent: number) => import('@/types').RiskCheckResult;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -149,6 +152,11 @@ const initialPositions: Position[] = [
     pnl: 45.2,
     pnlPercent: 8.19,
     openedAt: minutesAgo(45),
+    direction: 'short',
+    slippage: 1,
+    breakevenSet: false,
+    highWaterMark: 0.00489,
+    initialValue: 452,
   },
   {
     id: 'pos_2',
@@ -161,6 +169,11 @@ const initialPositions: Position[] = [
     pnl: -152.5,
     pnlPercent: -6.84,
     openedAt: minutesAgo(120),
+    direction: 'short',
+    slippage: 1,
+    breakevenSet: false,
+    highWaterMark: 0.0234,
+    initialValue: 117,
   },
 ];
 
@@ -517,5 +530,40 @@ export const useTradingStore = create<TradingState>((set, get) => ({
   // ── recomputeStats ────────────────────────────────────────────────────────────
   recomputeStats: () => {
     set((state) => ({ stats: computeStats(state.tradeRecords) }));
+  },
+
+  updateSlippage: (id: string, slippage: number) => {
+    set((state) => ({
+      positions: state.positions.map((p) =>
+        p.id === id ? { ...p, slippage } : p
+      ),
+    }));
+  },
+
+  setBreakeven: (id: string) => {
+    set((state) => ({
+      positions: state.positions.map((p) =>
+        p.id === id ? { ...p, breakevenSet: true, breakevenPrice: p.entryPrice } : p
+      ),
+    }));
+  },
+
+  runRiskCheck: (id: string, closePercent: number) => {
+    const { positions, dailyDrawdown, overallDrawdown } = get();
+    const position = positions.find((p) => p.id === id);
+    const warnings: string[] = [];
+    const blockers: string[] = [];
+    if (!position) {
+      return { passed: false, dailyDrawdownRemaining: 0, overallDrawdownRemaining: 0, positionRiskPercent: 0, warnings, blockers: ['Position not found'] };
+    }
+    const dailyRemaining = dailyDrawdown.limit - Math.abs(dailyDrawdown.current);
+    const overallRemaining = overallDrawdown.limit - Math.abs(overallDrawdown.current);
+    const estimatedPnl = position.pnl * (closePercent / 100);
+    const positionRiskPercent = Math.abs(estimatedPnl / 10000) * 100;
+    if (dailyRemaining < 50) blockers.push('Daily drawdown limit nearly reached');
+    if (overallRemaining < 100) blockers.push('Overall drawdown limit nearly reached');
+    if (position.pnlPercent < -5) warnings.push('Position is significantly in drawdown');
+    if (closePercent < 100) warnings.push(`Partial close: ${closePercent}% of position`);
+    return { passed: blockers.length === 0, dailyDrawdownRemaining: dailyRemaining, overallDrawdownRemaining: overallRemaining, positionRiskPercent, warnings, blockers };
   },
 }));

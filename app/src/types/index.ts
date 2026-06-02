@@ -12,7 +12,30 @@ export interface Position {
   pnlPercent: number;
   openedAt: string;
   icon?: string;
+
+  // V2 Feature 1 — advanced position management fields
+  direction: 'long' | 'short';
+  slippage: number;
+  breakevenSet: boolean;
+  breakevenPrice?: number;
+  stopLoss?: number;
+  takeProfit?: number;
+  highWaterMark: number;
+  initialValue: number;
 }
+
+// ─── V2 Feature 1 — Risk check & slippage types ───────────────────────────────
+
+export interface RiskCheckResult {
+  passed: boolean;
+  dailyDrawdownRemaining: number;
+  overallDrawdownRemaining: number;
+  positionRiskPercent: number;
+  warnings: string[];
+  blockers: string[];
+}
+
+export type SlippagePreset = 0.5 | 1 | 2 | 5;
 
 export interface DrawdownMetric {
   current: number;
@@ -35,6 +58,10 @@ export interface ActivityItem {
     | 'withdrawal'
     | 'challenge_purchase'
     | 'payout'
+    | 'breakeven_set'
+    | 'partial_close'
+    | 'stop_loss_hit'
+    | 'take_profit_hit'
     | 'swap';
   description: string;
   timestamp: string;
