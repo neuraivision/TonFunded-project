@@ -25,8 +25,9 @@ export default function AppLayout() {
     <div className="min-h-screen bg-primary-app flex flex-col max-w-lg mx-auto">
       {/* Premium header */}
       <header
-        className="flex items-center justify-between border-b border-default sticky top-0 z-40" style={{ background: "var(--bg-card)" }}
+        className="flex items-center justify-between border-b border-default sticky top-0 z-40"
         style={{
+          background: 'var(--bg-card)',
           paddingTop: 'max(env(safe-area-inset-top, 0px) + 10px, 14px)',
           paddingBottom: '12px',
           paddingLeft: '18px',
@@ -49,7 +50,7 @@ export default function AppLayout() {
             />
           </div>
           <div>
-            <p className="text-[15px] font-700 text-primary-app leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.03em' }}>
+            <p className="text-[15px] text-primary-app leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.03em' }}>
               {title}
             </p>
             {location.pathname === '/' && (
@@ -61,8 +62,8 @@ export default function AppLayout() {
         <div style={{ overflow: 'visible', padding: '4px' }}>
           <button
             onClick={() => setNotifOpen(true)}
-            className="relative w-9 h-9 rounded-xl bg-surface-app flex items-center justify-center active:bg-muted-app transition-colors"
-            style={{ overflow: 'visible', border: '1px solid var(--border-default)' }}
+            className="relative w-9 h-9 rounded-xl flex items-center justify-center active:opacity-70 transition-colors"
+            style={{ overflow: 'visible', background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
           >
             <Bell size={17} className="text-secondary" />
             {unreadCount > 0 && (

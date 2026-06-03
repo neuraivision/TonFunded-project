@@ -15,8 +15,9 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-default max-w-lg mx-auto" style={{ background: "var(--bg-card)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-default max-w-lg mx-auto"
       style={{
+        background: 'var(--bg-card)',
         boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
       }}
     >
@@ -31,18 +32,15 @@ export default function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center justify-center gap-1 w-full h-full relative select-none transition-opacity"
+              className="flex flex-col items-center justify-center gap-1 w-full h-full relative select-none"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              {/* Active indicator dot */}
               {isActive && (
                 <div
                   className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
                   style={{ background: 'var(--gradient-accent)' }}
                 />
               )}
-              
-              {/* Icon container */}
               <div
                 className={`flex items-center justify-center w-9 h-7 rounded-xl transition-all duration-150 ${
                   isActive ? 'bg-accent-light' : ''
@@ -55,9 +53,7 @@ export default function BottomNav() {
                 />
               </div>
               <span
-                className={`text-[10px] leading-none transition-colors ${
-                  isActive ? 'text-accent-app font-700' : 'text-tertiary font-500'
-                }`}
+                className={`text-[10px] leading-none ${isActive ? 'text-accent-app' : 'text-tertiary'}`}
                 style={{ fontWeight: isActive ? 700 : 500 }}
               >
                 {tab.label}
