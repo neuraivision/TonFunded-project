@@ -5,47 +5,33 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import App from './App';
 import './index.css';
 
-function TelegramThemeSync() {
+function TelegramInit() {
   useEffect(() => {
-    const applyTheme = () => {
-      // Re-read WebApp each time — Telegram updates it in place
-      const tg = (window as any).Telegram?.WebApp;
-      const scheme =
-        tg?.colorScheme ??
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-
-      if (scheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    };
-
-    // Apply immediately on mount
-    applyTheme();
-
-    // Also fire after a short delay — Telegram WebApp can be slow to expose colorScheme
-    const timer = setTimeout(applyTheme, 300);
-
-    // Listen for Telegram theme changes
     const tg = (window as any).Telegram?.WebApp;
-    if (tg?.onEvent) {
-      tg.onEvent('themeChanged', applyTheme);
-      return () => {
-        clearTimeout(timer);
-        tg.offEvent('themeChanged', applyTheme);
-      };
+    if (tg) {
+      tg.ready();
+      tg.expand();
     }
 
-    // Fallback: OS preference changes (for browser testing)
+    const applyTheme = () => {
+      const scheme = (window as any).Telegram?.WebApp?.colorScheme
+        ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', scheme === 'dark');
+    };
+
+    applyTheme();
+    const timer = setTimeout(applyTheme, 300);
+
+    const tgInst = (window as any).Telegram?.WebApp;
+    if (tgInst?.onEvent) {
+      tgInst.onEvent('themeChanged', applyTheme);
+      return () => { clearTimeout(timer); tgInst.offEvent('themeChanged', applyTheme); };
+    }
+
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
     mq.addEventListener('change', applyTheme);
-    return () => {
-      clearTimeout(timer);
-      mq.removeEventListener('change', applyTheme);
-    };
+    return () => { clearTimeout(timer); mq.removeEventListener('change', applyTheme); };
   }, []);
-
   return null;
 }
 
@@ -53,7 +39,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <TonConnectUIProvider manifestUrl="https://ton-connect.github.io/demo-dapp-with-react-ui/tonconnect-manifest.json">
-        <TelegramThemeSync />
+        <TelegramInit />
         <App />
       </TonConnectUIProvider>
     </BrowserRouter>

@@ -1,195 +1,84 @@
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown, Target, Zap, Award, BarChart2 } from 'lucide-react';
 import type { PerformanceStats } from '@/types';
+import { TrendingUp, Target, Zap, Award } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
-interface Props {
-  stats: PerformanceStats;
-  /** Whether to show only the compact summary (for the Home page card) */
-  compact?: boolean;
-}
+interface Props { stats: PerformanceStats; compact?: boolean; }
 
-// ─── Custom tooltip for equity curve ─────────────────────────────────────────
+const weekData = [
+  { day: 'Mon', pnl: 120 },
+  { day: 'Tue', pnl: -45 },
+  { day: 'Wed', pnl: 210 },
+  { day: 'Thu', pnl: 80 },
+  { day: 'Fri', pnl: -20 },
+  { day: 'Sat', pnl: 160 },
+  { day: 'Sun', pnl: 95 },
+];
 
-function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) {
-  if (!active || !payload || payload.length === 0) return null;
+export default function PerformanceAnalytics({ stats }: Props) {
   return (
-    <div className="bg-white border border-default rounded-xl px-3 py-2 shadow-md">
-      <p className="text-xs font-semibold text-primary-app">${payload[0].value.toLocaleString()}</p>
-    </div>
-  );
-}
-
-// ─── Single stat tile ─────────────────────────────────────────────────────────
-
-function StatTile({
-  label,
-  value,
-  subValue,
-  color,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  subValue?: string;
-  color: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <div className="bg-gray-50 rounded-xl p-3">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <Icon size={13} className={color} />
-        <span className="text-[11px] font-medium text-tertiary">{label}</span>
+    <div className="space-y-4">
+      {/* Key metrics */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {[
+          { icon: TrendingUp, label: 'Win Rate',      val: `${stats.winRate}%`,          sub: `${stats.winningTrades}W / ${stats.losingTrades}L`, color: 'text-green-600', bg: 'bg-green-50 dark:bg-green-900/20' },
+          { icon: Target,     label: 'Profit Factor', val: `${stats.profitFactor}x`,      sub: 'Risk-adjusted return',                              color: 'text-accent-app', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { icon: Zap,        label: 'Avg Win',       val: `$${stats.avgWin.toFixed(0)}`, sub: 'Per winning trade',                                 color: 'text-primary-app', bg: 'bg-muted-app' },
+          { icon: Award,      label: 'Best Streak',   val: `${stats.maxConsecutiveWins}`, sub: 'Consecutive wins',                                  color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+        ].map(({ icon: Icon, label, val, sub, color, bg }) => (
+          <div key={label} className="card !p-3.5">
+            <div className={`w-7 h-7 rounded-xl ${bg} flex items-center justify-center mb-2`}>
+              <Icon size={13} className={color} />
+            </div>
+            <p className={`text-lg font-bold ${color}`}>{val}</p>
+            <p className="text-[11px] text-secondary mt-0.5">{label}</p>
+            <p className="text-[10px] text-tertiary mt-0.5">{sub}</p>
+          </div>
+        ))}
       </div>
-      <p className={`text-base font-bold ${color}`}>{value}</p>
-      {subValue && <p className="text-[11px] text-tertiary mt-0.5">{subValue}</p>}
-    </div>
-  );
-}
 
-export default function PerformanceAnalytics({ stats, compact = false }: Props) {
-  const equityData = stats.equityCurve.length > 0
-    ? stats.equityCurve
-    : [
-        { day: 'Mon', value: 10000, label: '$10,000' },
-        { day: 'Tue', value: 10120, label: '$10,120' },
-        { day: 'Wed', value: 10050, label: '$10,050' },
-        { day: 'Thu', value: 10245, label: '$10,245' },
-        { day: 'Fri', value: 10180, label: '$10,180' },
-        { day: 'Sat', value: 10020, label: '$10,020' },
-        { day: 'Sun', value: 9847, label: '$9,847' },
-      ];
-
-  const latestEquity = equityData[equityData.length - 1]?.value ?? 10000;
-  const firstEquity = equityData[0]?.value ?? 10000;
-  const curveUp = latestEquity >= firstEquity;
-  const curveColor = curveUp ? '#16a34a' : '#dc2626';
-  const curveGradientId = curveUp ? 'equityGradientGreen' : 'equityGradientRed';
-
-  return (
-    <div className="card-base space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-primary-app">Performance</h3>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-tertiary">
-            {stats.totalTrades} trades
-          </span>
-          <span
-            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-              stats.winRate >= 60
-                ? 'bg-green-50 text-green-600'
-                : stats.winRate >= 45
-                  ? 'bg-amber-50 text-amber-600'
-                  : 'bg-red-50 text-red-500'
-            }`}
-          >
-            {stats.winRate}% WR
-          </span>
+      {/* Weekly P&L bar chart */}
+      <div className="card">
+        <p className="text-sm font-bold text-primary-app mb-4">Weekly P&L</p>
+        <div className="h-36">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={weekData} barSize={18}>
+              <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
+              <YAxis hide />
+              <Bar dataKey="pnl" radius={[6,6,0,0]}>
+                {weekData.map((entry, i) => (
+                  <Cell key={i} fill={entry.pnl >= 0 ? '#22c55e' : '#ef4444'} fillOpacity={0.85} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Equity curve */}
-      <div className="h-28">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={equityData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id={curveGradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={curveColor} stopOpacity={0.15} />
-                <stop offset="100%" stopColor={curveColor} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis
-              dataKey="day"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
-            />
-            <YAxis hide domain={['auto', 'auto']} />
-            <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke={curveColor}
-              strokeWidth={2}
-              fill={`url(#${curveGradientId})`}
-              dot={false}
-              activeDot={{ r: 4, fill: curveColor, stroke: '#fff', strokeWidth: 2 }}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Primary stats row */}
-      <div className="grid grid-cols-4 gap-2 pt-1 border-t border-default">
-        <div className="text-center">
-          <p className={`text-base font-bold ${stats.winRate >= 50 ? 'text-green-600' : 'text-red-500'}`}>
-            {stats.winRate}%
-          </p>
-          <p className="text-[11px] text-tertiary">Win Rate</p>
-        </div>
-        <div className="text-center">
-          <p className={`text-base font-bold ${stats.profitFactor >= 1.5 ? 'text-green-600' : stats.profitFactor >= 1 ? 'text-amber-600' : 'text-red-500'}`}>
-            {stats.profitFactor.toFixed(2)}
-          </p>
-          <p className="text-[11px] text-tertiary">P. Factor</p>
-        </div>
-        <div className="text-center">
-          <p className="text-base font-bold text-primary-app">{stats.totalTrades}</p>
-          <p className="text-[11px] text-tertiary">Trades</p>
-        </div>
-        <div className="text-center">
-          <p className="text-base font-bold text-green-600">+${stats.bestTrade}</p>
-          <p className="text-[11px] text-tertiary">Best</p>
+      {/* Trade breakdown */}
+      <div className="card">
+        <p className="text-sm font-bold text-primary-app mb-3">Trade Breakdown</p>
+        <div className="space-y-3">
+          {[
+            { label: 'Total Trades',   val: stats.totalTrades,             bar: null },
+            { label: 'Win Rate',       val: `${stats.winRate}%`,           bar: stats.winRate, barColor: 'bg-green-500' },
+            { label: 'Avg Win',        val: `$${stats.avgWin.toFixed(0)}`, bar: null },
+            { label: 'Avg Loss',       val: `$${stats.avgLoss.toFixed(0)}`,bar: null },
+            { label: 'Best Trade',     val: `$${stats.bestTrade.toFixed(0)}`, bar: null },
+          ].map(({ label, val, bar, barColor }) => (
+            <div key={label}>
+              <div className="flex justify-between mb-1">
+                <span className="text-xs text-secondary">{label}</span>
+                <span className="text-xs font-bold text-primary-app">{val}</span>
+              </div>
+              {bar !== null && (
+                <div className="progress-track !h-1">
+                  <div className={`progress-fill ${barColor ?? 'bg-accent-app'}`} style={{ width: `${Math.min(bar, 100)}%` }} />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
-
-      {/* Expanded stats — hidden in compact mode */}
-      {!compact && (
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <StatTile
-            label="Avg Win"
-            value={`+$${stats.avgWin.toFixed(2)}`}
-            subValue={`${stats.winningTrades} wins`}
-            color="text-green-600"
-            icon={TrendingUp}
-          />
-          <StatTile
-            label="Avg Loss"
-            value={`-$${stats.avgLoss.toFixed(2)}`}
-            subValue={`${stats.losingTrades} losses`}
-            color="text-red-500"
-            icon={TrendingDown}
-          />
-          <StatTile
-            label="Best Trade"
-            value={`+$${stats.bestTrade.toFixed(2)}`}
-            color="text-green-600"
-            icon={Award}
-          />
-          <StatTile
-            label="Worst Trade"
-            value={`-$${Math.abs(stats.worstTrade).toFixed(2)}`}
-            color="text-red-500"
-            icon={Target}
-          />
-          <StatTile
-            label="Win Streak"
-            value={`${stats.maxConsecutiveWins} trades`}
-            color="text-accent-app"
-            icon={Zap}
-          />
-          <StatTile
-            label="Avg Duration"
-            value={
-              stats.avgDurationMinutes < 60
-                ? `${stats.avgDurationMinutes}m`
-                : `${Math.floor(stats.avgDurationMinutes / 60)}h ${stats.avgDurationMinutes % 60}m`
-            }
-            color="text-secondary"
-            icon={BarChart2}
-          />
-        </div>
-      )}
     </div>
   );
 }
