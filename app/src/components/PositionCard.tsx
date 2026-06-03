@@ -141,7 +141,8 @@ export default function PositionCard({ position }: Props) {
         <RiskCheckModal
           result={riskCheck.result}
           closePercent={riskCheck.percent}
-          position={position}
+          tokenName={position.tokenName}
+          estimatedPnl={position.pnl * (riskCheck.percent / 100)}
           onConfirm={confirmClose}
           onCancel={() => setRiskCheck(null)}
         />
@@ -149,8 +150,8 @@ export default function PositionCard({ position }: Props) {
 
       {showSlippage && (
         <SlippageSettingsSheet
-          positionId={position.id}
-          currentSlippage={position.slippage}
+          position={position}
+          isOpen={showSlippage}
           onClose={() => setShowSlippage(false)}
         />
       )}

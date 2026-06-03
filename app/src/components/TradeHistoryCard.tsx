@@ -36,7 +36,7 @@ export default function TradeHistoryCard({ record }: Props) {
               <span className="text-[11px] text-tertiary">{timeAgo(record.closedAt)}</span>
             </div>
             <span className="text-tertiary text-[10px]">·</span>
-            <span className="text-[11px] text-tertiary">{record.holdDuration}</span>
+            <span className="text-[11px] text-tertiary">{record.durationMinutes}m</span>
           </div>
         </div>
 
