@@ -1,193 +1,250 @@
 import { useEffect } from 'react';
-import { RefreshCw, Trophy, Flame, Crown } from 'lucide-react';
+import { RefreshCw, Trophy, TrendingUp, Flame, Medal } from 'lucide-react';
 import { useLeaderboardStore } from '@/stores/leaderboardStore';
 import type { LeaderboardEntry, LeaderboardPeriod } from '@/types';
 
-function flag(code: string) {
-  return code.toUpperCase().split('').map(c => String.fromCodePoint(c.charCodeAt(0) + 127397)).join('');
+// ─── Country flag emoji helper ────────────────────────────────────────────────
+
+function countryFlag(code: string): string {
+  const offset = 127397;
+  return code
+    .toUpperCase()
+    .split('')
+    .map((c) => String.fromCodePoint(c.charCodeAt(0) + offset))
+    .join('');
 }
 
-function timeAgo(iso: string) {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return 'Just now';
-  if (s < 3600) return `${Math.floor(s/60)}m ago`;
-  return `${Math.floor(s/3600)}h ago`;
+// ─── Medal / rank display ─────────────────────────────────────────────────────
+
+function RankDisplay({ rank }: { rank: number }) {
+  if (rank === 1) return <span className="text-xl">🥇</span>;
+  if (rank === 2) return <span className="text-xl">🥈</span>;
+  if (rank === 3) return <span className="text-xl">🥉</span>;
+  return (
+    <span className="text-sm font-bold text-tertiary w-7 text-center">
+      #{rank}
+    </span>
+  );
 }
 
-const TIER_COLORS: Record<string, string> = {
-  Starter: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300',
-  Growth:  'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  Pro:     'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-  Expert:  'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+// ─── Tier badge ───────────────────────────────────────────────────────────────
+
+const TIER_COLORS: Record<string, { bg: string; text: string }> = {
+  Starter: { bg: 'bg-gray-100', text: 'text-gray-600' },
+  Growth: { bg: 'bg-blue-50', text: 'text-blue-600' },
+  Pro: { bg: 'bg-purple-50', text: 'text-purple-600' },
+  Expert: { bg: 'bg-amber-50', text: 'text-amber-600' },
 };
 
-function Row({ entry }: { entry: LeaderboardEntry }) {
-  const isTop3 = entry.rank <= 3;
+function TierBadge({ tier }: { tier: string }) {
+  const colors = TIER_COLORS[tier] ?? { bg: 'bg-gray-100', text: 'text-gray-600' };
   return (
-    <div className={`flex items-center gap-3 px-3 py-3 rounded-2xl transition-all ${
-      entry.isCurrentUser
-        ? 'bg-accent-light border border-accent-app/40'
-        : isTop3
-        ? 'bg-gradient-to-r from-amber-50/50 to-transparent dark:from-amber-900/10 border border-amber-100/50 dark:border-amber-800/20'
-        : 'bg-card-app border border-default'
-    }`}>
+    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${colors.bg} ${colors.text}`}>
+      {tier}
+    </span>
+  );
+}
+
+// ─── Leaderboard row ──────────────────────────────────────────────────────────
+
+function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
+  const isTop3 = entry.rank <= 3;
+
+  return (
+    <div
+      className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors ${
+        entry.isCurrentUser
+          ? 'bg-accent-light border border-accent-app'
+          : isTop3
+            ? 'bg-gray-50'
+            : 'bg-white'
+      }`}
+    >
       {/* Rank */}
-      <div className="w-8 text-center flex-shrink-0">
-        {entry.rank === 1 ? <span className="text-xl">🥇</span>
-        : entry.rank === 2 ? <span className="text-xl">🥈</span>
-        : entry.rank === 3 ? <span className="text-xl">🥉</span>
-        : <span className="text-sm font-bold text-tertiary">#{entry.rank}</span>}
+      <div className="w-8 flex items-center justify-center flex-shrink-0">
+        <RankDisplay rank={entry.rank} />
       </div>
 
       {/* Avatar */}
       <div
-        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
+        className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
         style={{ backgroundColor: entry.avatarColor }}
       >
         {entry.avatarInitials}
       </div>
 
-      {/* Info */}
+      {/* Name + meta */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className={`text-sm font-bold truncate ${entry.isCurrentUser ? 'text-accent-app' : 'text-primary-app'}`}>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <p className={`text-sm font-bold truncate ${entry.isCurrentUser ? 'text-accent-app' : 'text-primary-app'}`}>
             {entry.displayName}
-          </span>
-          {entry.isCurrentUser && <span className="badge bg-accent-app/10 text-accent-app text-[9px]">You</span>}
-          <span className="text-sm">{flag(entry.country)}</span>
+            {entry.isCurrentUser && (
+              <span className="text-[10px] font-semibold text-accent-app ml-1">(You)</span>
+            )}
+          </p>
+          <span className="text-sm">{countryFlag(entry.country)}</span>
+          <TierBadge tier={entry.challengeTier} />
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className={`badge text-[9px] ${TIER_COLORS[entry.challengeTier] ?? TIER_COLORS['Starter']}`}>
-            {entry.challengeTier}
+          <span className="text-[11px] text-tertiary">{entry.totalTrades} trades</span>
+          <span className="text-[11px] text-tertiary">·</span>
+          <span className={`text-[11px] font-medium ${entry.winRate >= 60 ? 'text-green-600' : 'text-secondary'}`}>
+            {entry.winRate}% WR
           </span>
           {entry.streakDays > 0 && (
-            <div className="flex items-center gap-0.5">
-              <Flame size={10} className="text-orange-400" />
-              <span className="text-[10px] text-orange-500 font-semibold">{entry.streakDays}d</span>
-            </div>
+            <>
+              <span className="text-[11px] text-tertiary">·</span>
+              <span className="flex items-center gap-0.5 text-[11px] font-medium text-amber-600">
+                <Flame size={10} />
+                {entry.streakDays}d
+              </span>
+            </>
           )}
-          <span className="text-[10px] text-tertiary">{entry.totalTrades} trades</span>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Profit */}
       <div className="text-right flex-shrink-0">
         <p className="text-sm font-bold text-green-600">+{entry.profitPct.toFixed(2)}%</p>
-        <p className="text-[11px] text-tertiary">${entry.profitUsd.toLocaleString()}</p>
+        <p className="text-[11px] text-tertiary">
+          ${entry.profitUsd >= 1000
+            ? `${(entry.profitUsd / 1000).toFixed(1)}K`
+            : entry.profitUsd.toFixed(0)}
+        </p>
       </div>
     </div>
   );
 }
 
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+const PERIOD_LABELS: { id: LeaderboardPeriod; label: string }[] = [
+  { id: 'weekly', label: 'This Week' },
+  { id: 'monthly', label: 'This Month' },
+  { id: 'alltime', label: 'All Time' },
+];
+
+function formatRefreshed(ts: string): string {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60_000);
+  if (diff < 1) return 'Just now';
+  if (diff === 1) return '1 min ago';
+  return `${diff} mins ago`;
+}
+
 export default function Leaderboard() {
-  const { entries, period, isLoading, lastRefreshed, setPeriod, refresh } = useLeaderboardStore();
-  const myEntry = entries.find(e => e.isCurrentUser);
+  const { entries, period, isLoading, lastRefreshed, currentUserRank, setPeriod, refresh } =
+    useLeaderboardStore();
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const periods: { id: LeaderboardPeriod; label: string }[] = [
-    { id: 'weekly', label: 'Week' },
-    { id: 'monthly', label: 'Month' },
-    { id: 'alltime', label: 'All Time' },
-  ];
-
-  const top3 = entries.slice(0, 3);
-  const rest = entries.slice(3);
+  const top3 = entries.filter((e) => e.rank <= 3);
+  const rest = entries.filter((e) => e.rank > 3);
+  const currentUser = entries.find((e) => e.isCurrentUser);
 
   return (
-    <div className="px-4 pt-4 pb-8 space-y-4 page-enter">
+    <div className="px-4 pt-4 pb-6 page-enter">
 
-      {/* Period selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex bg-muted-app rounded-xl p-1 gap-1">
-          {periods.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setPeriod(p.id)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                period === p.id ? 'bg-card-app text-primary-app shadow-sm' : 'text-secondary'
-              }`}
-            >{p.label}</button>
-          ))}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <p className="text-xs text-tertiary">Updated {formatRefreshed(lastRefreshed)}</p>
         </div>
         <button
           onClick={refresh}
           disabled={isLoading}
-          className="w-9 h-9 rounded-xl bg-muted-app flex items-center justify-center active:opacity-70"
+          className="w-9 h-9 rounded-full bg-white border border-default flex items-center justify-center active:bg-gray-50 disabled:opacity-50"
         >
-          <RefreshCw size={14} className={`text-secondary ${isLoading ? 'animate-spin' : ''}`} />
+          <RefreshCw
+            size={15}
+            className={`text-secondary ${isLoading ? 'animate-spin' : ''}`}
+          />
         </button>
       </div>
 
-      {/* Top 3 podium */}
-      <div className="card bg-gradient-to-b from-amber-50/60 to-transparent dark:from-amber-900/10 dark:to-transparent">
-        <div className="flex items-center gap-2 mb-3">
-          <Crown size={15} className="text-amber-500" />
-          <span className="text-sm font-bold text-primary-app">Top Traders</span>
-          <span className="text-[11px] text-tertiary ml-auto">Updated {timeAgo(lastRefreshed)}</span>
-        </div>
-        <div className="flex items-end justify-center gap-3">
-          {/* 2nd */}
-          {top3[1] && (
-            <div className="flex flex-col items-center gap-1.5 flex-1">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-sm font-bold shadow-sm" style={{ backgroundColor: top3[1].avatarColor }}>
-                {top3[1].avatarInitials}
-              </div>
-              <span className="text-[11px] font-bold text-primary-app truncate max-w-[60px]">{top3[1].displayName}</span>
-              <span className="text-xs font-bold text-green-600">+{top3[1].profitPct.toFixed(1)}%</span>
-              <div className="w-full h-12 bg-gray-200 dark:bg-white/10 rounded-t-lg flex items-center justify-center">
-                <span className="text-lg">🥈</span>
-              </div>
-            </div>
-          )}
-          {/* 1st */}
-          {top3[0] && (
-            <div className="flex flex-col items-center gap-1.5 flex-1">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-base font-bold shadow-md ring-2 ring-amber-400" style={{ backgroundColor: top3[0].avatarColor }}>
-                {top3[0].avatarInitials}
-              </div>
-              <span className="text-[11px] font-bold text-primary-app truncate max-w-[60px]">{top3[0].displayName}</span>
-              <span className="text-xs font-bold text-green-600">+{top3[0].profitPct.toFixed(1)}%</span>
-              <div className="w-full h-16 bg-amber-400/30 dark:bg-amber-500/20 rounded-t-lg flex items-center justify-center">
-                <span className="text-2xl">🥇</span>
-              </div>
-            </div>
-          )}
-          {/* 3rd */}
-          {top3[2] && (
-            <div className="flex flex-col items-center gap-1.5 flex-1">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-sm font-bold shadow-sm" style={{ backgroundColor: top3[2].avatarColor }}>
-                {top3[2].avatarInitials}
-              </div>
-              <span className="text-[11px] font-bold text-primary-app truncate max-w-[60px]">{top3[2].displayName}</span>
-              <span className="text-xs font-bold text-green-600">+{top3[2].profitPct.toFixed(1)}%</span>
-              <div className="w-full h-8 bg-orange-200/50 dark:bg-orange-900/20 rounded-t-lg flex items-center justify-center">
-                <span className="text-lg">🥉</span>
-              </div>
-            </div>
-          )}
-        </div>
+      {/* ── Period tabs ────────────────────────────────────────────────────── */}
+      <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
+        {PERIOD_LABELS.map((p) => (
+          <button
+            key={p.id}
+            onClick={() => setPeriod(p.id)}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              period === p.id ? 'bg-white text-primary-app shadow-sm' : 'text-secondary'
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
       </div>
 
-      {/* My rank */}
-      {myEntry && (
-        <div>
-          <p className="text-xs font-semibold text-secondary mb-2">Your Ranking</p>
-          <Row entry={myEntry} />
+      {/* ── Your rank card ──────────────────────────────────────────────────── */}
+      {currentUser && (
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-accent-app/30 rounded-2xl px-5 py-4 mb-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white border-2 border-accent-app">
+              <Trophy size={18} className="text-accent-app" />
+            </div>
+            <div>
+              <p className="text-xs text-secondary">Your Rank</p>
+              <p className="text-xl font-bold text-accent-app">#{currentUserRank}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-secondary">Profit</p>
+            <p className="text-lg font-bold text-green-600">+{currentUser.profitPct.toFixed(2)}%</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-secondary">Win Rate</p>
+            <div className="flex items-center justify-end gap-1">
+              <TrendingUp size={12} className="text-green-600" />
+              <p className="text-base font-bold text-primary-app">{currentUser.winRate}%</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Full list */}
-      <div>
-        <p className="text-xs font-semibold text-secondary mb-2">All Traders</p>
-        <div className="space-y-2">
-          {entries.map(e => <Row key={e.userId} entry={e} />)}
+      {/* ── Podium top 3 ───────────────────────────────────────────────────── */}
+      {top3.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Medal size={14} className="text-amber-500" />
+            <p className="text-xs font-semibold text-secondary uppercase tracking-wide">Top Performers</p>
+          </div>
+          <div className="space-y-2">
+            {top3.map((entry) => (
+              <LeaderboardRow key={entry.userId} entry={entry} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      <p className="text-center text-[11px] text-tertiary pt-2">
-        <Trophy size={11} className="inline mr-1" />
-        Rankings update every 24 hours
+      {/* ── Divider ────────────────────────────────────────────────────────── */}
+      {rest.length > 0 && (
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-[11px] text-tertiary font-medium">Ranks 4–{entries.length}</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+      )}
+
+      {/* ── Full list ──────────────────────────────────────────────────────── */}
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 rounded-2xl skeleton" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {rest.map((entry) => (
+            <LeaderboardRow key={entry.userId} entry={entry} />
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-center text-tertiary mt-6">
+        Rankings update every 15 minutes · Profit % measured from challenge start
       </p>
     </div>
   );
