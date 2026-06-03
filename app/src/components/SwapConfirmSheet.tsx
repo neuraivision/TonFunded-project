@@ -46,7 +46,7 @@ function DetailRow({
 function PriceImpactBadge({ impact }: { impact: number }) {
   if (impact < 1) {
     return (
-      <span className="inline-flex items-center gap-1 text-green-700 bg-green-50 text-xs font-semibold px-2 py-0.5 rounded-full">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ background: "rgba(22,163,74,0.1)", color: "#4ade80" }} className=" px-2 py-0.5 rounded-full">
         <CheckCircle size={11} />
         {impact.toFixed(2)}% — Low
       </span>
@@ -54,7 +54,7 @@ function PriceImpactBadge({ impact }: { impact: number }) {
   }
   if (impact < 3) {
     return (
-      <span className="inline-flex items-center gap-1 text-amber-700 bg-amber-50 text-xs font-semibold px-2 py-0.5 rounded-full">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ background: "rgba(245,158,11,0.1)", color: "#fbbf24" }} className=" px-2 py-0.5 rounded-full">
         <AlertTriangle size={11} />
         {impact.toFixed(2)}% — Medium
       </span>
@@ -69,7 +69,7 @@ function PriceImpactBadge({ impact }: { impact: number }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-red-700 bg-red-50 text-xs font-bold px-2 py-0.5 rounded-full">
+    <span className="inline-flex items-center gap-1 text-xs font-bold" style={{ background: "rgba(239,68,68,0.1)", color: "#f87171" }} className=" px-2 py-0.5 rounded-full">
       <AlertTriangle size={11} />
       {impact.toFixed(2)}% — Very High
     </span>
@@ -146,9 +146,9 @@ export default function SwapConfirmSheet({
       />
 
       {/* Sheet */}
-      <div className="sheet-content relative bg-white rounded-t-[20px] p-5 max-h-[92vh] overflow-y-auto">
+      <div className="sheet-content relative rounded-t-[20px] p-5 max-h-[92vh] overflow-y-auto" style={{ background: "var(--bg-card)" }}>
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+        <div className="w-10 h-1 rounded-full mx-auto mb-5" />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
@@ -156,7 +156,7 @@ export default function SwapConfirmSheet({
           {!isConfirming && (
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200"
+              className="w-8 h-8 rounded-full flex items-center justify-center active:opacity-70"
             >
               <X size={16} className="text-secondary" />
             </button>
@@ -164,7 +164,7 @@ export default function SwapConfirmSheet({
         </div>
 
         {/* Trade visualisation */}
-        <div className="bg-gray-50 rounded-2xl p-4 mb-5">
+        <div className="rounded-2xl p-4 mb-5" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-default)" }}>
           {/* From */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -181,14 +181,14 @@ export default function SwapConfirmSheet({
                 </p>
               </div>
             </div>
-            <span className="text-xs font-medium text-secondary bg-white border border-default px-2.5 py-1 rounded-full">
+            <span className="text-xs font-medium text-secondary border border-default px-2.5 py-1 rounded-full" style={{ background: "var(--bg-card)" }}>
               Pay
             </span>
           </div>
 
           {/* Arrow */}
           <div className="flex justify-center my-3">
-            <div className="w-7 h-7 rounded-full bg-white border border-default flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full border border-default flex items-center justify-center" style={{ background: "var(--bg-card)" }}>
               <ArrowRight size={13} className="text-secondary" />
             </div>
           </div>
@@ -206,7 +206,7 @@ export default function SwapConfirmSheet({
                 </p>
               </div>
             </div>
-            <span className="text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full" style={{ background: "rgba(22,163,74,0.1)", color: "#4ade80" }}>
               Receive
             </span>
           </div>

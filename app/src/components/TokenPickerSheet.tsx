@@ -84,9 +84,9 @@ export default function TokenPickerSheet({
       />
 
       {/* Sheet — tall: 90vh to show the full token list */}
-      <div className="sheet-content relative bg-white rounded-t-[20px] flex flex-col max-h-[90vh]">
+      <div className="sheet-content relative rounded-t-[20px] flex flex-col max-h-[90vh]" style={{ background: "var(--bg-card)" }}>
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mt-3 mb-4 flex-shrink-0" />
+        <div className="w-10 h-1 rounded-full mx-auto mt-3 mb-4 flex-shrink-0" />
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 mb-4 flex-shrink-0">
@@ -96,7 +96,7 @@ export default function TokenPickerSheet({
               setQuery('');
               onClose();
             }}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200"
+            className="w-8 h-8 rounded-full flex items-center justify-center active:opacity-70"
           >
             <X size={16} className="text-secondary" />
           </button>
@@ -114,7 +114,8 @@ export default function TokenPickerSheet({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search token name or symbol…"
-              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-default rounded-xl text-sm text-primary-app placeholder:text-tertiary focus:outline-none focus:border-accent-app focus:ring-1 focus:ring-accent-app transition-all"
+              className="w-full pl-9 pr-4 py-2.5 border border-default rounded-xl" style={{ background: "var(--bg-surface)" }}
+                  className="w-full pl-9 pr-4 py-2.5 border border-default rounded-xl text-sm text-primary-app placeholder:text-tertiary focus:outline-none focus:border-accent-app focus:ring-1 focus:ring-accent-app transition-all"
               autoComplete="off"
             />
           </div>
@@ -157,7 +158,7 @@ export default function TokenPickerSheet({
                     className={`w-full flex items-center justify-between py-3 px-3 rounded-xl transition-colors select-none ${
                       isExcluded
                         ? 'opacity-35 cursor-not-allowed'
-                        : 'active:bg-gray-50 hover:bg-gray-50/60'
+                        : 'active:opacity-80'
                     }`}
                   >
                     {/* Left: avatar + name */}

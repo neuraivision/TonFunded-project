@@ -25,7 +25,7 @@ export default function AppLayout() {
     <div className="min-h-screen bg-primary-app flex flex-col max-w-lg mx-auto">
       {/* Premium header */}
       <header
-        className="flex items-center justify-between bg-white border-b border-default sticky top-0 z-40"
+        className="flex items-center justify-between border-b border-default sticky top-0 z-40" style={{ background: "var(--bg-card)" }}
         style={{
           paddingTop: 'max(env(safe-area-inset-top, 0px) + 10px, 14px)',
           paddingBottom: '12px',

@@ -9,7 +9,7 @@ export default function WalletCard() {
       <div className="flex items-center gap-3">
         <div
           className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isConnected ? 'bg-green-100' : 'bg-gray-100'
+            isConnected ? 'bg-green-100' : ''
           }`}
         >
           <Wallet
@@ -31,7 +31,7 @@ export default function WalletCard() {
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-300" />
+                <div className="w-2 h-2 rounded-full" style={{ background: "var(--border-default)" }} />
                 <span className="text-sm font-medium text-primary-app">
                   Connect Wallet
                 </span>
@@ -45,7 +45,7 @@ export default function WalletCard() {
       {isConnected ? (
         <button
           onClick={disconnect}
-          className="flex items-center gap-1.5 text-xs text-secondary hover:text-danger transition-colors px-3 py-1.5 rounded-full hover:bg-red-50"
+          className="flex items-center gap-1.5 text-xs text-secondary hover:text-danger transition-colors px-3 py-1.5 rounded-full "
         >
           <LogOut size={13} />
           <span>Disconnect</span>

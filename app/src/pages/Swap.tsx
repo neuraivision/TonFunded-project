@@ -41,7 +41,7 @@ function TokenSelectorButton({
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2 bg-white border border-default rounded-xl px-3 py-2 active:bg-gray-50 transition-colors flex-shrink-0"
+      className="flex items-center gap-2 border border-default rounded-xl px-3 py-2 transition-colors flex-shrink-0 active:opacity-70" style={{ background: "var(--bg-card)" }}
     >
       <TokenAvatar token={token} size="md" />
       <span className="text-sm font-bold text-primary-app">{token.symbol}</span>
@@ -89,8 +89,8 @@ function SlippageRow({
             className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${
               slippage === p && !showCustom
                 ? 'bg-accent-app text-white'
-                : 'bg-gray-100 text-secondary active:bg-gray-200'
-            }`}
+                : 'text-secondary active:opacity-70'
+            }`} style={slippage === p && !showCustom ? {} : { background: 'var(--bg-surface)' }}
           >
             {p}%
           </button>
@@ -111,8 +111,8 @@ function SlippageRow({
             className={`text-xs font-semibold px-2.5 py-1 rounded-full transition-colors ${
               !SLIPPAGE_PRESETS.includes(slippage as (typeof SLIPPAGE_PRESETS)[number])
                 ? 'bg-accent-app text-white'
-                : 'bg-gray-100 text-secondary active:bg-gray-200'
-            }`}
+                : 'text-secondary active:opacity-70'
+            }`} style={slippage === p && !showCustom ? {} : { background: 'var(--bg-surface)' }}
           >
             {!SLIPPAGE_PRESETS.includes(slippage as (typeof SLIPPAGE_PRESETS)[number])
               ? `${slippage}%`
@@ -157,7 +157,7 @@ function AmountBox({
       : null;
 
   return (
-    <div className="bg-gray-50 rounded-2xl p-4">
+    <div className="rounded-2xl p-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-default)" }}>
       {/* Label row */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs font-medium text-tertiary">{label}</span>
@@ -179,7 +179,7 @@ function AmountBox({
               value={amount}
               onChange={(e) => onChange?.(e.target.value)}
               placeholder="0.00"
-              className="w-full text-2xl font-bold text-primary-app bg-transparent border-none outline-none placeholder:text-gray-300"
+              className="w-full text-2xl font-bold text-primary-app bg-transparent border-none outline-none placeholder:text-tertiary"
             />
           ) : (
             <div className="text-2xl font-bold text-primary-app min-h-[36px] flex items-center">
@@ -188,7 +188,7 @@ function AmountBox({
               ) : amount ? (
                 <span>{amount}</span>
               ) : (
-                <span className="text-gray-300">0.00</span>
+                <span className="text-tertiary">0.00</span>
               )}
             </div>
           )}
@@ -218,7 +218,7 @@ function AmountBox({
                     : parseFloat(fill.toFixed(6)).toString();
                 onChange?.(formatted);
               }}
-              className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg bg-white border border-default text-secondary active:bg-gray-100 transition-colors"
+              className="flex-1 text-[11px] font-semibold py-1.5 rounded-lg border border-default text-secondary transition-colors active:opacity-70" style={{ background: "var(--bg-card)" }}
             >
               {btnLabel}
             </button>
@@ -255,13 +255,13 @@ function QuoteInfoRow({
 
   const impactColor =
     priceImpact < 1
-      ? 'text-green-600'
+      ? 'text-success-app'
       : priceImpact < 3
-        ? 'text-amber-500'
-        : 'text-red-500';
+        ? 'text-warning-app'
+        : 'text-danger-app';
 
   return (
-    <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+    <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-default)" }}>
       <button
         onClick={() => setExpanded((e) => !e)}
         className="w-full flex items-center justify-between"
@@ -350,14 +350,14 @@ export default function Swap() {
   if (isSuccess) {
     return (
       <div className="px-4 pt-16 pb-8 flex flex-col items-center justify-center min-h-[60vh] page-enter">
-        <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-5">
+        <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5" style={{ background: "rgba(22,163,74,0.1)" }}>
           <Zap size={36} className="text-green-500" />
         </div>
         <h2 className="text-xl font-bold text-primary-app mb-1">Swap Executed</h2>
         <p className="text-sm text-secondary text-center max-w-[260px]">
           Your transaction has been confirmed on the TON network.
         </p>
-        <div className="mt-4 bg-green-50 rounded-xl px-5 py-3 text-center">
+        <div className="mt-4 rounded-xl px-5 py-3 text-center" style={{ background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.2)" }}>
           <p className="text-xs text-green-700 font-medium">Balances updated</p>
           <p className="text-sm font-bold text-green-700 mt-1">
             {fromToken.symbol} → {toToken.symbol}
@@ -379,13 +379,13 @@ export default function Swap() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowHistory((s) => !s)}
-            className="w-9 h-9 rounded-full bg-white border border-default flex items-center justify-center active:bg-gray-50"
+            className="w-9 h-9 rounded-full border border-default flex items-center justify-center active:opacity-70" style={{ background: "var(--bg-card)" }}
           >
             <Clock size={16} className="text-secondary" />
           </button>
           <button
             onClick={resetSwap}
-            className="w-9 h-9 rounded-full bg-white border border-default flex items-center justify-center active:bg-gray-50"
+            className="w-9 h-9 rounded-full border border-default flex items-center justify-center active:opacity-70" style={{ background: "var(--bg-card)" }}
           >
             <RefreshCw size={16} className="text-secondary" />
           </button>
@@ -406,7 +406,7 @@ export default function Swap() {
           </div>
           {swapHistory.length === 0 ? (
             <div className="card-base text-center py-8">
-              <Clock size={24} className="text-gray-300 mx-auto mb-2" />
+              <Clock size={24} className="text-tertiary mx-auto mb-2" />
               <p className="text-sm text-secondary">No swaps yet</p>
             </div>
           ) : (
@@ -439,7 +439,7 @@ export default function Swap() {
         <div className="flex justify-center relative z-10 -my-1">
           <button
             onClick={flipTokens}
-            className="w-10 h-10 rounded-full bg-white border-2 border-default flex items-center justify-center active:rotate-180 transition-transform duration-300 shadow-sm"
+            className="w-10 h-10 rounded-full border-2 border-default flex items-center justify-center active:rotate-180 transition-transform duration-300" style={{ background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" }}
           >
             <ArrowDownUp size={16} className="text-accent-app" />
           </button>
@@ -477,7 +477,7 @@ export default function Swap() {
 
         {/* Error */}
         {isError && errorMessage && (
-          <div className="flex items-start gap-2.5 bg-red-50 rounded-xl p-3 page-enter">
+          <div className="flex items-start gap-2.5 rounded-xl p-3 page-enter" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)" }}>
             <XCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-xs text-red-700 leading-relaxed">{errorMessage}</p>
@@ -541,7 +541,7 @@ export default function Swap() {
       </div>
 
       {/* ── Low-liquidity notice ────────────────────────────────────────────── */}
-      <div className="mt-4 bg-amber-50 rounded-xl p-3.5 flex items-start gap-2.5">
+      <div className="mt-4 rounded-xl p-3.5 flex items-start gap-2.5" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)" }}>
         <Zap size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-xs font-semibold text-amber-700">Low-Liquidity Tokens</p>

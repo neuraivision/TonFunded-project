@@ -46,9 +46,9 @@ export default function SlippageSettingsSheet({ position, isOpen, onClose }: Pro
   };
 
   const getSlippageRisk = (val: number) => {
-    if (val <= 1) return { label: 'Conservative', color: 'text-green-600', bg: 'bg-green-50' };
-    if (val <= 2) return { label: 'Moderate', color: 'text-amber-600', bg: 'bg-amber-50' };
-    return { label: 'Aggressive', color: 'text-red-600', bg: 'bg-red-50' };
+    if (val <= 1) return { label: 'Conservative', color: '#4ade80', bgStyle: { background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.2)' } };
+    if (val <= 2) return { label: 'Moderate', color: '#fbbf24', bgStyle: { background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' } };
+    return { label: 'Aggressive', color: '#f87171', bgStyle: { background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' } };
   };
 
   const risk = getSlippageRisk(selected);
@@ -59,9 +59,9 @@ export default function SlippageSettingsSheet({ position, isOpen, onClose }: Pro
       <div className="sheet-overlay absolute inset-0" onClick={onClose} />
 
       {/* Sheet */}
-      <div className="sheet-content relative bg-white rounded-t-[20px] p-6 max-h-[80vh] overflow-y-auto">
+      <div className="sheet-content relative rounded-t-[20px] p-6 max-h-[80vh] overflow-y-auto" style={{ background: "var(--bg-card)" }}>
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+        <div className="w-10 h-1 rounded-full mx-auto mb-5" style={{ background: "var(--border-default)" }}" />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
@@ -73,14 +73,14 @@ export default function SlippageSettingsSheet({ position, isOpen, onClose }: Pro
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+            className="w-8 h-8 rounded-full flex items-center justify-center"
           >
             <X size={16} className="text-secondary" />
           </button>
         </div>
 
         {/* Info banner */}
-        <div className="flex items-start gap-2 bg-blue-50 rounded-xl p-3 mt-4 mb-5">
+        <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'rgba(77,184,255,0.08)', border: '1px solid rgba(77,184,255,0.15)' }} mt-4 mb-5">
           <Info size={14} className="text-accent-app flex-shrink-0 mt-0.5" />
           <p className="text-xs text-secondary leading-relaxed">
             Slippage tolerance is the maximum price difference you'll accept between
@@ -95,7 +95,7 @@ export default function SlippageSettingsSheet({ position, isOpen, onClose }: Pro
             <p className="text-xs text-secondary">Current Slippage</p>
             <p className="text-2xl font-bold text-primary-app mt-0.5">{selected}%</p>
           </div>
-          <span className={`text-xs font-semibold px-3 py-1 rounded-full ${risk.color} ${risk.bg}`}>
+          <span className="text-xs font-semibold px-3 py-1 rounded-full" style={{ color: risk.color, ...risk.bgStyle }}>
             {risk.label}
           </span>
         </div>
@@ -111,7 +111,7 @@ export default function SlippageSettingsSheet({ position, isOpen, onClose }: Pro
                 className={`text-left p-3.5 rounded-xl border transition-all ${
                   isActive
                     ? 'border-accent-app bg-accent-light'
-                    : 'border-default bg-white active:bg-gray-50'
+                    : 'border-default" style={{ background: 'var(--bg-surface)' }}'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -164,7 +164,7 @@ export default function SlippageSettingsSheet({ position, isOpen, onClose }: Pro
         </div>
 
         {/* Memecoin tip */}
-        <div className="flex items-start gap-2 bg-amber-50 rounded-xl p-3 mb-5">
+        <div className="flex items-start gap-2 rounded-xl p-3" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)' }} mb-5">
           <Zap size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-700 leading-relaxed">
             <strong>Memecoin tip:</strong> Use 5%+ for newly launched Jettons with

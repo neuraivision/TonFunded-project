@@ -123,7 +123,7 @@ export default function Challenges() {
       {showSuccess && (
         <div className="toast-enter fixed top-4 left-4 right-4 z-[100] rounded-2xl p-4 flex items-center gap-3"
           style={{ background: '#fff', border: '1px solid rgba(34,197,94,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 16px rgba(34,197,94,0.15)' }}>
-          <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(22,163,74,0.1)" }}>
             <CheckCircle size={20} className="text-green-500" />
           </div>
           <div>

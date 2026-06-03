@@ -15,7 +15,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-default max-w-lg mx-auto"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-default max-w-lg mx-auto" style={{ background: "var(--bg-card)" }}
       style={{
         boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
       }}
