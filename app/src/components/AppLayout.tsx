@@ -23,45 +23,60 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-primary-app flex flex-col max-w-lg mx-auto">
-      {/* Top header — generous height + overflow visible so logo & badge never clip */}
+      {/* Premium header */}
       <header
         className="flex items-center justify-between bg-white border-b border-default sticky top-0 z-40"
         style={{
-          paddingTop: 'max(env(safe-area-inset-top, 0px) + 12px, 16px)',
-          paddingBottom: '14px',
-          paddingLeft: '16px',
-          paddingRight: '16px',
+          paddingTop: 'max(env(safe-area-inset-top, 0px) + 10px, 14px)',
+          paddingBottom: '12px',
+          paddingLeft: '18px',
+          paddingRight: '18px',
           overflow: 'visible',
+          boxShadow: '0 1px 0 rgba(0,0,0,0.05)',
         }}
       >
         <div className="flex items-center gap-2.5">
-          <img
-            src="/logo-48.png"
-            alt="TonFunded"
-            className="w-9 h-9 rounded-xl object-cover shadow-sm"
-          />
-          <span className="text-base font-bold text-primary-app">{title}</span>
+          <div className="relative">
+            <img
+              src="/logo-48.png"
+              alt="TonFunded"
+              className="w-9 h-9 rounded-xl object-cover"
+              style={{ boxShadow: '0 2px 8px rgba(77,184,255,0.25)' }}
+            />
+            <div
+              className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-400 border-2 border-white"
+              style={{ boxShadow: '0 0 6px rgba(34,197,94,0.5)' }}
+            />
+          </div>
+          <div>
+            <p className="text-[15px] font-700 text-primary-app leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.03em' }}>
+              {title}
+            </p>
+            {location.pathname === '/' && (
+              <p className="text-[10px] text-tertiary leading-tight">Prop Trading Platform</p>
+            )}
+          </div>
         </div>
 
-        {/* Notification bell — overflow visible so red badge is never clipped */}
         <div style={{ overflow: 'visible', padding: '4px' }}>
           <button
             onClick={() => setNotifOpen(true)}
-            className="relative w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center active:bg-gray-200 transition-colors"
-            style={{ overflow: 'visible' }}
+            className="relative w-9 h-9 rounded-xl bg-surface-app flex items-center justify-center active:bg-muted-app transition-colors"
+            style={{ overflow: 'visible', border: '1px solid var(--border-default)' }}
           >
-            <Bell size={18} className="text-secondary" />
+            <Bell size={17} className="text-secondary" />
             {unreadCount > 0 && (
               <span
                 className="absolute bg-red-500 text-white font-bold rounded-full flex items-center justify-center"
                 style={{
-                  top: '-6px',
-                  right: '-6px',
-                  minWidth: '20px',
-                  height: '20px',
-                  fontSize: '10px',
+                  top: '-5px',
+                  right: '-5px',
+                  minWidth: '18px',
+                  height: '18px',
+                  fontSize: '9px',
                   padding: '0 4px',
                   zIndex: 50,
+                  boxShadow: '0 0 6px rgba(239,68,68,0.4)',
                 }}
               >
                 {unreadCount > 9 ? '9+' : unreadCount}
@@ -71,15 +86,11 @@ export default function AppLayout() {
         </div>
       </header>
 
-      {/* Page content */}
       <main className="flex-1 overflow-y-auto scrollbar-hide pb-24">
         <Outlet />
       </main>
 
-      {/* Bottom nav */}
       <BottomNav />
-
-      {/* Notification panel */}
       <NotificationPanel isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   );

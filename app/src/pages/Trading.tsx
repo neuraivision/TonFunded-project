@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, AlertTriangle, X, Filter, BarChart2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, X, Filter, BarChart2, Zap } from 'lucide-react';
 import { useTradingStore } from '@/stores/tradingStore';
 import PositionCard from '@/components/PositionCard';
 import TradeHistoryCard from '@/components/TradeHistoryCard';
@@ -24,7 +24,6 @@ export default function Trading() {
   const [activeTab, setActiveTab] = useState<Tab>('positions');
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
 
-  // Live price ticker every 5 seconds
   useEffect(() => {
     const interval = setInterval(updatePrices, 5000);
     return () => clearInterval(interval);
@@ -39,55 +38,92 @@ export default function Trading() {
   });
 
   return (
-    <div className="px-4 pt-4 pb-6 page-enter">
+    <div className="px-4 pt-4 pb-6 page-enter space-y-4">
 
-      {/* ── Drawdown alert banner ─────────────────────────────────────────── */}
+      {/* Drawdown alert */}
       {drawdownAlert && (
-        <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4 page-enter">
-          <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+        <div
+          className="flex items-start gap-3 rounded-xl px-4 py-3"
+          style={{
+            background: 'linear-gradient(135deg, rgba(239,68,68,0.08), rgba(220,38,38,0.04))',
+            border: '1px solid rgba(239,68,68,0.2)',
+          }}
+        >
+          <AlertTriangle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-red-700 flex-1 leading-relaxed">{drawdownAlert}</p>
           <button onClick={dismissDrawdownAlert} className="text-red-400 active:text-red-600 flex-shrink-0">
-            <X size={15} />
+            <X size={14} />
           </button>
         </div>
       )}
 
-      {/* ── Account P&L summary ───────────────────────────────────────────── */}
-      <div className="card-base !p-4 mb-4">
-        <div className="flex items-center justify-between">
+      {/* P&L Hero Card */}
+      <div
+        className="rounded-2xl p-5 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #1a6faa 0%, #2aa8f2 50%, #4DB8FF 100%)' }}
+      >
+        {/* Background decoration */}
+        <div
+          className="absolute top-0 right-0 w-40 h-40 rounded-full pointer-events-none"
+          style={{ background: 'rgba(255,255,255,0.07)', transform: 'translate(30%, -30%)' }}
+        />
+        <div
+          className="absolute bottom-0 left-10 w-24 h-24 rounded-full pointer-events-none"
+          style={{ background: 'rgba(255,255,255,0.05)', transform: 'translateY(40%)' }}
+        />
+
+        <p className="text-xs font-600 text-white/70 uppercase tracking-widest mb-2">
+          Live P&L
+        </p>
+        <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs text-tertiary">Open P&L</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex items-center gap-2 mb-1">
               {isProfit ? (
-                <TrendingUp size={16} className="text-green-600" />
+                <TrendingUp size={18} className="text-white/80" />
               ) : (
-                <TrendingDown size={16} className="text-red-500" />
+                <TrendingDown size={18} className="text-white/80" />
               )}
-              <p className={`text-xl font-bold ${isProfit ? 'text-green-600' : 'text-red-500'}`}>
-                {isProfit ? '+' : ''}${Math.abs(pnl).toFixed(2)}
+              <p className="font-number text-3xl font-700 leading-none" style={{ fontWeight: 700, letterSpacing: '-0.04em' }}>
+                {isProfit ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
               </p>
             </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-tertiary">Change</p>
-            <p className={`text-base font-semibold mt-0.5 ${isProfit ? 'text-green-600' : 'text-red-500'}`}>
-              {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%
+            <p className="text-sm text-white/70">
+              {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}% return
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-tertiary">Open Positions</p>
-            <p className="text-base font-semibold text-primary-app mt-0.5">{positions.length}</p>
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)' }}
+            >
+              <Zap size={12} className="text-white" />
+              <span className="text-xs font-700 text-white">{positions.length} Open</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Drawdown Monitor ──────────────────────────────────────────────── */}
-      <div className="mb-4">
-        <DrawdownMonitor />
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-2.5">
+        {[
+          { label: 'Win Rate', value: stats.totalTrades > 0 ? `${Math.round((stats.winningTrades / stats.totalTrades) * 100)}%` : '—', color: 'text-success-app' },
+          { label: 'Total Trades', value: stats.totalTrades, color: 'text-primary-app' },
+          { label: 'Best Trade', value: stats.bestTrade > 0 ? `+$${stats.bestTrade.toFixed(0)}` : '—', color: 'text-success-app' },
+        ].map((s) => (
+          <div key={s.label} className="stat-tile text-center">
+            <p className={`text-base font-number font-700 ${s.color}`} style={{ fontWeight: 700 }}>
+              {s.value}
+            </p>
+            <p className="text-[11px] text-tertiary mt-0.5">{s.label}</p>
+          </div>
+        ))}
       </div>
 
-      {/* ── Tab bar ───────────────────────────────────────────────────────── */}
-      <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
+      {/* Drawdown Monitor */}
+      <DrawdownMonitor />
+
+      {/* Tab bar */}
+      <div className="tab-bar">
         {(
           [
             { id: 'positions', label: `Positions (${positions.length})` },
@@ -98,26 +134,30 @@ export default function Trading() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === tab.id
-                ? 'bg-white text-primary-app shadow-sm'
-                : 'text-secondary'
-            }`}
+            className={`tab-item ${activeTab === tab.id ? 'tab-item-active' : ''}`}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* ── Positions tab ─────────────────────────────────────────────────── */}
+      {/* Positions tab */}
       {activeTab === 'positions' && (
         <div className="space-y-3 page-enter">
           {positions.length === 0 ? (
-            <div className="card-base flex flex-col items-center justify-center py-12 text-center">
-              <BarChart2 size={32} className="text-gray-300 mb-3" />
-              <p className="text-base font-semibold text-secondary">No Open Positions</p>
-              <p className="text-sm text-tertiary mt-1">
-                Use Quick Swap to open a position, or wait for a trade signal.
+            <div
+              className="flex flex-col items-center justify-center py-14 text-center rounded-2xl"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
+            >
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+                style={{ background: 'var(--bg-accent-light)' }}
+              >
+                <BarChart2 size={24} className="text-accent-app" />
+              </div>
+              <p className="text-base font-600 text-primary-app" style={{ fontWeight: 600 }}>No Open Positions</p>
+              <p className="text-sm text-tertiary mt-1 max-w-[200px] leading-relaxed">
+                Use Quick Swap to open a position
               </p>
             </div>
           ) : (
@@ -128,26 +168,25 @@ export default function Trading() {
         </div>
       )}
 
-      {/* ── History tab ───────────────────────────────────────────────────── */}
+      {/* History tab */}
       {activeTab === 'history' && (
         <div className="space-y-3 page-enter">
-          {/* Stats banner */}
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-base font-bold text-primary-app">{stats.totalTrades}</p>
+            <div className="stat-tile text-center">
+              <p className="text-base font-number font-700 text-primary-app" style={{ fontWeight: 700 }}>{stats.totalTrades}</p>
               <p className="text-[11px] text-tertiary">Total</p>
             </div>
-            <div className="bg-green-50 rounded-xl p-3 text-center">
-              <p className="text-base font-bold text-green-600">{stats.winningTrades}</p>
+            <div className="stat-tile text-center" style={{ borderTop: '2px solid var(--text-success)' }}>
+              <p className="text-base font-number font-700 text-success-app" style={{ fontWeight: 700 }}>{stats.winningTrades}</p>
               <p className="text-[11px] text-tertiary">Wins</p>
             </div>
-            <div className="bg-red-50 rounded-xl p-3 text-center">
-              <p className="text-base font-bold text-red-500">{stats.losingTrades}</p>
+            <div className="stat-tile text-center" style={{ borderTop: '2px solid var(--text-danger)' }}>
+              <p className="text-base font-number font-700 text-danger-app" style={{ fontWeight: 700 }}>{stats.losingTrades}</p>
               <p className="text-[11px] text-tertiary">Losses</p>
             </div>
           </div>
 
-          {/* Filter row */}
+          {/* Filter pills */}
           <div className="flex items-center gap-2">
             <Filter size={13} className="text-tertiary" />
             {(
@@ -160,11 +199,16 @@ export default function Trading() {
               <button
                 key={f.id}
                 onClick={() => setHistoryFilter(f.id)}
-                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                className={`text-xs font-600 px-3.5 py-1.5 rounded-full transition-all ${
                   historyFilter === f.id
-                    ? 'bg-accent-app text-white'
-                    : 'bg-gray-100 text-secondary active:bg-gray-200'
+                    ? 'text-white'
+                    : 'bg-surface-app text-secondary'
                 }`}
+                style={
+                  historyFilter === f.id
+                    ? { background: 'var(--gradient-accent)', boxShadow: 'var(--shadow-accent)' }
+                    : { border: '1px solid var(--border-default)' }
+                }
               >
                 {f.label}
               </button>
@@ -172,8 +216,7 @@ export default function Trading() {
           </div>
 
           {filteredRecords.length === 0 ? (
-            <div className="card-base flex flex-col items-center justify-center py-10 text-center">
-              <BarChart2 size={28} className="text-gray-300 mb-3" />
+            <div className="flex flex-col items-center justify-center py-10 text-center rounded-2xl" style={{ background: 'var(--bg-surface)' }}>
               <p className="text-sm font-medium text-secondary">No trades match this filter</p>
             </div>
           ) : (
@@ -184,7 +227,7 @@ export default function Trading() {
         </div>
       )}
 
-      {/* ── Analytics tab ─────────────────────────────────────────────────── */}
+      {/* Analytics tab */}
       {activeTab === 'analytics' && (
         <div className="page-enter">
           <PerformanceAnalytics stats={stats} compact={false} />

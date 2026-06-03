@@ -14,8 +14,13 @@ export default function BottomNav() {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-default max-w-lg mx-auto">
-      <div className="flex items-center justify-around h-16">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-default max-w-lg mx-auto"
+      style={{
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+      }}
+    >
+      <div className="flex items-center justify-around h-[60px]">
         {tabs.map((tab) => {
           const isActive =
             tab.path === '/'
@@ -26,20 +31,34 @@ export default function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center justify-center gap-0.5 w-full h-full relative select-none active:opacity-70 transition-opacity"
+              className="flex flex-col items-center justify-center gap-1 w-full h-full relative select-none transition-opacity"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
+              {/* Active indicator dot */}
               {isActive && (
-                <div className="absolute top-0 w-8 h-0.5 rounded-full bg-accent-app" />
+                <div
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
+                  style={{ background: 'var(--gradient-accent)' }}
+                />
               )}
-              <tab.icon
-                size={20}
-                className={isActive ? 'text-accent-app' : 'text-tertiary'}
-                strokeWidth={isActive ? 2.5 : 1.5}
-              />
-              <span
-                className={`text-[10px] font-medium tracking-wide ${
-                  isActive ? 'text-accent-app' : 'text-tertiary'
+              
+              {/* Icon container */}
+              <div
+                className={`flex items-center justify-center w-9 h-7 rounded-xl transition-all duration-150 ${
+                  isActive ? 'bg-accent-light' : ''
                 }`}
+              >
+                <tab.icon
+                  size={isActive ? 19 : 20}
+                  className={isActive ? 'text-accent-app' : 'text-tertiary'}
+                  strokeWidth={isActive ? 2.5 : 1.75}
+                />
+              </div>
+              <span
+                className={`text-[10px] leading-none transition-colors ${
+                  isActive ? 'text-accent-app font-700' : 'text-tertiary font-500'
+                }`}
+                style={{ fontWeight: isActive ? 700 : 500 }}
               >
                 {tab.label}
               </span>
