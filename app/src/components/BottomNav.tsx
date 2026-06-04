@@ -2,11 +2,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Trophy, TrendingUp, ArrowLeftRight, User } from 'lucide-react';
 
 const tabs = [
-  { path: '/', icon: Home, label: 'Home' },
-  { path: '/challenges', icon: Trophy, label: 'Challenges' },
-  { path: '/trading', icon: TrendingUp, label: 'Trading' },
-  { path: '/swap', icon: ArrowLeftRight, label: 'Swap' },
-  { path: '/profile', icon: User, label: 'Profile' },
+  { path: '/',           icon: Home,          label: 'Home'       },
+  { path: '/challenges', icon: Trophy,         label: 'Challenges' },
+  { path: '/trading',    icon: TrendingUp,     label: 'Trading'    },
+  { path: '/swap',       icon: ArrowLeftRight, label: 'Swap'       },
+  { path: '/profile',    icon: User,           label: 'Profile'    },
 ];
 
 export default function BottomNav() {
@@ -15,13 +15,14 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-default max-w-lg mx-auto"
+      className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto"
       style={{
         background: 'var(--bg-card)',
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
+        borderTop: '1px solid var(--border-default)',
+        boxShadow: '0 -1px 0 rgba(0,0,0,0.04), 0 -8px 20px rgba(0,0,0,0.05)',
       }}
     >
-      <div className="flex items-center justify-around h-[60px]">
+      <div className="flex items-stretch h-[56px]">
         {tabs.map((tab) => {
           const isActive =
             tab.path === '/'
@@ -32,29 +33,43 @@ export default function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex flex-col items-center justify-center gap-1 w-full h-full relative select-none"
+              className="flex-1 flex flex-col items-center justify-center gap-[4px] relative select-none"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              {isActive && (
-                <div
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
-                  style={{ background: 'var(--gradient-accent)' }}
-                />
-              )}
+              {/* Active indicator — top bar */}
+              <span
+                className="absolute top-0 rounded-full transition-all duration-200"
+                style={{
+                  left: '50%', transform: 'translateX(-50%)',
+                  width: isActive ? '20px' : '0px',
+                  height: '2px',
+                  background: '#4DB8FF',
+                  opacity: isActive ? 1 : 0,
+                }}
+              />
+
+              {/* Icon */}
               <div
-                className={`flex items-center justify-center w-9 h-7 rounded-xl transition-all duration-150 ${
-                  isActive ? 'bg-accent-light' : ''
-                }`}
+                className="flex items-center justify-center rounded-xl transition-all duration-150"
+                style={{
+                  width: '36px', height: '26px',
+                  background: isActive ? 'rgba(77,184,255,0.1)' : 'transparent',
+                }}
               >
                 <tab.icon
-                  size={isActive ? 19 : 20}
-                  className={isActive ? 'text-accent-app' : 'text-tertiary'}
-                  strokeWidth={isActive ? 2.5 : 1.75}
+                  size={18}
+                  strokeWidth={isActive ? 2.2 : 1.6}
+                  style={{ color: isActive ? '#4DB8FF' : 'var(--text-tertiary)' }}
                 />
               </div>
+
+              {/* Label */}
               <span
-                className={`text-[10px] leading-none ${isActive ? 'text-accent-app' : 'text-tertiary'}`}
-                style={{ fontWeight: isActive ? 700 : 500 }}
+                className="text-[10px] leading-none tracking-tight"
+                style={{
+                  color: isActive ? '#4DB8FF' : 'var(--text-tertiary)',
+                  fontWeight: isActive ? 600 : 400,
+                }}
               >
                 {tab.label}
               </span>
@@ -62,7 +77,7 @@ export default function BottomNav() {
           );
         })}
       </div>
-      <div className="h-[env(safe-area-inset-bottom,0px)]" />
+      <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
     </nav>
   );
 }

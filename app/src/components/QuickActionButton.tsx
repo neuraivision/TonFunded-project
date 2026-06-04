@@ -4,18 +4,31 @@ interface Props {
   icon: LucideIcon;
   label: string;
   onClick?: () => void;
+  accent?: boolean;
 }
 
-export default function QuickActionButton({ icon: Icon, label, onClick }: Props) {
+export default function QuickActionButton({ icon: Icon, label, onClick, accent }: Props) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-1 select-none"
+      className="flex flex-col items-center gap-2 select-none active:opacity-60 transition-opacity"
     >
-      <div className="w-14 h-14 rounded-full border border-default flex items-center justify-center active:opacity-80 transition-opacity" style={{ background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" }}>
-        <Icon size={22} className="text-accent-app" />
+      <div
+        className="w-11 h-11 rounded-2xl flex items-center justify-center"
+        style={{
+          background: accent ? 'rgba(77,184,255,0.1)' : 'var(--bg-surface)',
+          border: `1px solid ${accent ? 'rgba(77,184,255,0.2)' : 'var(--border-default)'}`,
+        }}
+      >
+        <Icon
+          size={18}
+          style={{ color: accent ? '#4DB8FF' : 'var(--text-secondary)' }}
+          strokeWidth={1.7}
+        />
       </div>
-      <span className="text-[11px] font-medium text-secondary">{label}</span>
+      <span className="text-[10px] text-tertiary leading-none" style={{ fontWeight: 500 }}>
+        {label}
+      </span>
     </button>
   );
 }
