@@ -10,20 +10,20 @@ function getActivityIcon(type: ActivityItem['type']): {
 } {
   switch (type) {
     case 'trade_open':
-      return { icon: TrendingUp, bg: 'rgba(77,184,255,0.1)', color: '#4DB8FF' };
+      return { icon: TrendingUp, bg: 'bg-blue-50', color: 'text-blue-500' };
     case 'trade_close':
-      return { icon: TrendingDown, bg: 'rgba(249,115,22,0.1)', color: '#fb923c' };
+      return { icon: TrendingDown, bg: 'bg-orange-50', color: 'text-orange-500' };
     case 'deposit':
-      return { icon: Wallet, bg: 'rgba(22,163,74,0.1)', color: '#4ade80' };
+      return { icon: Wallet, bg: 'bg-green-50', color: 'text-green-500' };
     case 'withdrawal':
     case 'payout':
-      return { icon: DollarSign, bg: 'rgba(168,85,247,0.1)', color: '#c084fc' };
+      return { icon: DollarSign, bg: 'bg-purple-50', color: 'text-purple-500' };
     case 'challenge_purchase':
-      return { icon: Trophy, bg: 'rgba(234,179,8,0.1)', color: '#fbbf24' };
+      return { icon: Trophy, bg: 'bg-yellow-50', color: 'text-yellow-600' };
     case 'swap':
-      return { icon: ArrowLeftRight, bg: 'rgba(6,182,212,0.1)', color: '#22d3ee' };
+      return { icon: ArrowLeftRight, bg: 'bg-cyan-50', color: 'text-cyan-600' };
     default:
-      return { icon: Wallet, bg: 'rgba(148,163,184,0.1)', color: '#94a3b8' };
+      return { icon: Wallet, bg: 'bg-gray-50', color: 'text-gray-500' };
   }
 }
 
@@ -63,9 +63,9 @@ export default function RecentActivity() {
             return (
               <div key={item.id} className="flex items-center gap-3">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: bg }}
+                  className={`w-8 h-8 rounded-full ${bg} flex items-center justify-center flex-shrink-0`}
                 >
-                  <Icon size={14} style={{ color }} />
+                  <Icon size={14} className={color} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-primary-app truncate">

@@ -13,7 +13,7 @@ interface Props {
 function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number }> }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="border border-default rounded-xl px-3 py-2" style={{ background: "var(--bg-card)", boxShadow: "var(--shadow-md)" }}>
+    <div className="bg-white border border-default rounded-xl px-3 py-2 shadow-md">
       <p className="text-xs font-semibold text-primary-app">${payload[0].value.toLocaleString()}</p>
     </div>
   );
@@ -35,7 +35,7 @@ function StatTile({
   icon: React.ElementType;
 }) {
   return (
-    <div className="rounded-xl p-3" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-default)" }}>
+    <div className="bg-gray-50 rounded-xl p-3">
       <div className="flex items-center gap-1.5 mb-1.5">
         <Icon size={13} className={color} />
         <span className="text-[11px] font-medium text-tertiary">{label}</span>
@@ -77,10 +77,10 @@ export default function PerformanceAnalytics({ stats, compact = false }: Props) 
           <span
             className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
               stats.winRate >= 60
-                ? 'text-success-app'
+                ? 'bg-green-50 text-green-600'
                 : stats.winRate >= 45
-                  ? 'text-warning-app'
-                  : 'text-danger-app'
+                  ? 'bg-amber-50 text-amber-600'
+                  : 'bg-red-50 text-red-500'
             }`}
           >
             {stats.winRate}% WR

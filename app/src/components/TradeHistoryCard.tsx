@@ -40,16 +40,16 @@ export default function TradeHistoryCard({ record }: Props) {
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-bold text-primary-app">{record.tokenName}</p>
               <span
-                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                style={{
-                  background: record.direction === 'long' ? 'rgba(22,163,74,0.1)' : 'rgba(239,68,68,0.1)',
-                  color: record.direction === 'long' ? '#4ade80' : '#f87171',
-                }}
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  record.direction === 'long'
+                    ? 'bg-green-50 text-green-600'
+                    : 'bg-red-50 text-red-500'
+                }`}
               >
                 {record.direction === 'long' ? '▲ LONG' : '▼ SHORT'}
               </span>
               {record.closePercent < 100 && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.1)', color: '#fbbf24' }}>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600">
                   {record.closePercent}%
                 </span>
               )}
@@ -62,20 +62,22 @@ export default function TradeHistoryCard({ record }: Props) {
         <div className="text-right">
           <div className="flex items-center justify-end gap-1">
             {isProfit ? (
-              <TrendingUp size={13} className="text-success-app" />
+              <TrendingUp size={13} className="text-green-600" />
             ) : (
-              <TrendingDown size={13} className="text-danger-app" />
+              <TrendingDown size={13} className="text-red-500" />
             )}
             <span
               className={`text-sm font-bold ${
-                isProfit ? 'text-success-app' : 'text-danger-app'
+                isProfit ? 'text-green-600' : 'text-red-500'
               }`}
             >
               {isProfit ? '+' : ''}${Math.abs(record.pnl).toFixed(2)}
             </span>
           </div>
           <p
-            className={`font-number text-xs font-600 ${isProfit ? 'text-success-app' : 'text-danger-app'}`}
+            className={`text-xs font-semibold ${
+              isProfit ? 'text-green-600' : 'text-red-500'
+            }`}
           >
             {isProfit ? '+' : ''}
             {record.pnlPercent.toFixed(2)}%
@@ -93,7 +95,7 @@ export default function TradeHistoryCard({ record }: Props) {
         </div>
         <div>
           <p className="text-[11px] text-tertiary mb-0.5">Exit</p>
-          <p className={`font-number text-xs font-600 ${isProfit ? 'text-success-app' : 'text-danger-app'}`}>
+          <p className={`text-xs font-semibold ${isProfit ? 'text-green-600' : 'text-red-500'}`}>
             ${record.exitPrice < 0.001 ? record.exitPrice.toFixed(6) : record.exitPrice.toFixed(4)}
           </p>
         </div>
