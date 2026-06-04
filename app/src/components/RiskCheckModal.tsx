@@ -26,9 +26,9 @@ export default function RiskCheckModal({
       <div className="sheet-overlay absolute inset-0" onClick={onCancel} />
 
       {/* Sheet */}
-      <div className="sheet-content relative bg-white rounded-t-[20px] p-6 max-h-[90vh] overflow-y-auto">
+      <div className="sheet-content relative rounded-t-[20px] p-6 max-h-[90vh] overflow-y-auto" style={{ background: "var(--bg-card)" }}>
         {/* Handle */}
-        <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-5" />
+        <div className="w-10 h-1 rounded-full mx-auto mb-5" />
 
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
@@ -41,14 +41,14 @@ export default function RiskCheckModal({
           </div>
           <button
             onClick={onCancel}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+            className="w-8 h-8 rounded-full flex items-center justify-center"
           >
             <X size={16} className="text-secondary" />
           </button>
         </div>
 
         {/* Trade summary */}
-        <div className="bg-gray-50 rounded-xl p-4 mb-5 space-y-2">
+        <div className="rounded-xl p-4 mb-5 space-y-2" style={{ background: "var(--bg-surface)", border: "1px solid var(--border-default)" }}>
           <div className="flex items-center justify-between">
             <span className="text-sm text-secondary">Token</span>
             <span className="text-sm font-semibold text-primary-app">{tokenName}</span>
@@ -104,7 +104,7 @@ export default function RiskCheckModal({
             {result.blockers.map((blocker: string, i: number) => (
               <div
                 key={i}
-                className="flex items-start gap-2.5 bg-red-50 rounded-xl p-3"
+                className="flex items-start gap-2.5 rounded-xl p-3" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)" }}
               >
                 <XCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-red-700 leading-relaxed">{blocker}</p>
@@ -119,7 +119,7 @@ export default function RiskCheckModal({
             {result.warnings.map((warning: string, i: number) => (
               <div
                 key={i}
-                className="flex items-start gap-2.5 bg-amber-50 rounded-xl p-3"
+                className="flex items-start gap-2.5 rounded-xl p-3" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)" }}
               >
                 <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-700 leading-relaxed">{warning}</p>
@@ -130,7 +130,7 @@ export default function RiskCheckModal({
 
         {/* All clear */}
         {result.passed && result.warnings.length === 0 && (
-          <div className="flex items-center gap-2.5 bg-green-50 rounded-xl p-3 mb-4">
+          <div className="flex items-center gap-2.5 rounded-xl p-3 mb-4" style={{ background: "rgba(22,163,74,0.08)", border: "1px solid rgba(22,163,74,0.15)" }}>
             <CheckCircle size={16} className="text-green-600 flex-shrink-0" />
             <p className="text-xs text-green-700 font-medium">
               All risk checks passed — safe to execute
