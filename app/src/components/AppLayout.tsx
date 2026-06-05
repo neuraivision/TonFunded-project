@@ -6,68 +6,68 @@ import NotificationPanel from './NotificationPanel';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 const PAGE_TITLES: Record<string, string> = {
-  '/': 'TonFunded',
+  '/':           'TonFunded',
   '/challenges': 'Challenges',
-  '/trading': 'Trading',
-  '/swap': 'Swap',
-  '/leaderboard': 'Leaderboard',
-  '/profile': 'Profile',
+  '/trading':    'Trading',
+  '/swap':       'Swap',
+  '/leaderboard':'Leaderboard',
+  '/profile':    'Profile',
 };
 
 export default function AppLayout() {
   const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
   const { unreadCount } = useNotificationStore();
+
   const title = PAGE_TITLES[location.pathname] ?? 'TonFunded';
   const isHome = location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-primary-app flex flex-col max-w-lg mx-auto">
+    <div className="min-h-screen flex flex-col max-w-lg mx-auto" style={{ background: 'var(--bg-app)' }}>
       <header
         className="flex items-center justify-between sticky top-0 z-40"
         style={{
           background: 'var(--bg-card)',
-          borderBottom: '1px solid var(--border-default)',
-          paddingTop: 'max(env(safe-area-inset-top, 0px) + 12px, 16px)',
-          paddingBottom: '13px',
-          paddingLeft: '20px',
-          paddingRight: '20px',
+          borderBottom: '1px solid var(--line)',
+          paddingTop: 'max(env(safe-area-inset-top,0px) + 12px, 16px)',
+          paddingBottom: '12px',
+          paddingLeft: '18px',
+          paddingRight: '18px',
           boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
         }}
       >
-        {/* Left: logo (no status dot) + wordmark */}
+        {/* Logo + title */}
         <div className="flex items-center gap-2.5">
           <img
             src="/logo-48.png"
             alt="TonFunded"
-            className="w-[30px] h-[30px] rounded-lg object-cover flex-shrink-0"
-            style={{ boxShadow: '0 1px 4px rgba(77,184,255,0.18)' }}
+            className="w-[28px] h-[28px] rounded-lg object-cover flex-shrink-0"
           />
           <div className="flex flex-col leading-none">
             <span
-              className="text-[14px] text-primary-app"
-              style={{ fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1.15 }}
+              className="text-[14px]"
+              style={{ fontWeight: 700, letterSpacing: '-0.025em', color: 'var(--ink-1)', lineHeight: 1.2 }}
             >
               {isHome ? 'TonFunded' : title}
             </span>
             {isHome && (
-              <span className="text-[9.5px] text-tertiary uppercase tracking-[0.08em]" style={{ lineHeight: 1.3 }}>
+              <span
+                className="text-[9px] uppercase tracking-[0.09em]"
+                style={{ color: 'var(--ink-3)', lineHeight: 1.4, fontWeight: 500 }}
+              >
                 Prop Trading
               </span>
             )}
           </div>
         </div>
 
-        {/* Right: bell */}
+        {/* Bell */}
         <button
           onClick={() => setNotifOpen(true)}
           className="relative flex items-center justify-center w-8 h-8 rounded-xl active:opacity-60 transition-opacity"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-          }}
+          style={{ background: 'var(--bg-sunken)', border: '1px solid var(--line)' }}
         >
-          <Bell size={15} className="text-secondary" strokeWidth={1.8} />
+          <Bell size={15} style={{ color: 'var(--ink-2)' }} strokeWidth={1.8} />
           {unreadCount > 0 && (
             <span
               className="absolute flex items-center justify-center text-white"

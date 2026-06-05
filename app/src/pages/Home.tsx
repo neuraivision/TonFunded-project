@@ -9,12 +9,12 @@ import QuickActionButton from '@/components/QuickActionButton';
 import RecentActivity from '@/components/RecentActivity';
 import {
   ArrowDownLeft, ArrowUpRight, Clock, HelpCircle,
-  TrendingUp, TrendingDown, Shield, Zap, ChevronRight,
+  TrendingUp, TrendingDown, Shield, Zap, ChevronRight, Activity,
 } from 'lucide-react';
 
 export default function Home() {
   const navigate = useNavigate();
-  const { balance, pnl, pnlPercent, startingBalance } = useTradingStore();
+  const { balance, pnl, pnlPercent, startingBalance, stats } = useTradingStore();
   const { activeChallenge } = useChallengeStore();
 
   useEffect(() => {
@@ -23,174 +23,207 @@ export default function Home() {
   }, []);
 
   const isProfit = pnl >= 0;
+  const winRate = stats.totalTrades > 0 ? Math.round((stats.winningTrades / stats.totalTrades) * 100) : 0;
 
   return (
-    <div className="px-4 pt-5 pb-8 space-y-3 page-enter">
+    <div className="pb-10 page-enter">
 
-      {/* ── Hero balance card ──────────────────────────────────── */}
+      {/* ── Hero balance panel ────────────────────────── */}
       <div
-        className="rounded-2xl px-5 pt-5 pb-5 relative overflow-hidden"
+        className="px-5 pt-6 pb-5 relative overflow-hidden"
         style={{
-          background: 'linear-gradient(150deg, #091828 0%, #0d2138 55%, #081624 100%)',
+          background: 'linear-gradient(158deg,#08182E 0%,#0D2440 55%,#091C34 100%)',
+          borderBottom: '1px solid rgba(77,184,255,0.1)',
         }}
       >
-        {/* Glow orbs */}
-        <div className="absolute top-0 right-0 w-52 h-52 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(77,184,255,0.1) 0%, transparent 65%)', transform: 'translate(25%,-25%)' }} />
-        <div className="absolute bottom-0 left-0 w-36 h-36 pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(77,184,255,0.06) 0%, transparent 65%)', transform: 'translate(-20%,20%)' }} />
+        {/* Ambient glow */}
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: 'radial-gradient(ellipse 70% 60% at 85% 20%, rgba(77,184,255,0.09) 0%, transparent 70%)',
+        }} />
 
-        {/* Account type */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-600 text-white/40 uppercase tracking-[0.1em]" style={{ fontWeight: 600 }}>
-            {activeChallenge ? `${activeChallenge.tierName} · Phase ${activeChallenge.phase}` : 'Demo Account'}
-          </span>
+        {/* Account label */}
+        <div className="flex items-center justify-between mb-5 relative">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-[10px] uppercase tracking-[0.12em]"
+              style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 600 }}
+            >
+              {activeChallenge ? `${activeChallenge.tierName} · Phase ${activeChallenge.phase}` : 'Demo Account'}
+            </span>
+          </div>
           <div
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(77,184,255,0.12)', border: '1px solid rgba(77,184,255,0.2)' }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{ background: 'rgba(77,184,255,0.1)', border: '1px solid rgba(77,184,255,0.18)' }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: '0 0 4px rgba(74,222,128,0.7)' }} />
-            <span className="text-[9px] font-700 text-blue-300 tracking-widest" style={{ fontWeight: 700 }}>LIVE</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: '0 0 5px rgba(74,222,128,0.8)' }} />
+            <span className="text-[9px] font-700 tracking-widest" style={{ color: '#7ECFFF', fontWeight: 700 }}>LIVE</span>
           </div>
         </div>
 
         {/* Balance */}
-        <p className="font-number text-[38px] text-white leading-none" style={{ fontWeight: 700, letterSpacing: '-0.04em' }}>
-          ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        </p>
-        <p className="text-[11px] text-white/30 mt-1.5 font-number">
-          of ${startingBalance.toLocaleString()} starting capital
-        </p>
+        <div className="relative mb-4">
+          <p className="text-[11px] mb-1.5" style={{ color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>Account Balance</p>
+          <p className="font-number leading-none" style={{ fontSize: '40px', fontWeight: 800, color: '#fff', letterSpacing: '-0.045em' }}>
+            ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+          <p className="font-number text-[11px] mt-1.5" style={{ color: 'rgba(255,255,255,0.22)' }}>
+            of ${startingBalance.toLocaleString()} capital
+          </p>
+        </div>
 
-        {/* Divider */}
-        <div className="mt-4 mb-3.5" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+        {/* P&L + stats strip */}
+        <div
+          className="rounded-2xl px-4 py-3 relative"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
+          <div className="flex items-center justify-between">
+            {/* P&L */}
+            <div>
+              <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Session P&L</p>
+              <div className="flex items-center gap-2">
+                <span
+                  className="font-number text-[18px] leading-none"
+                  style={{ fontWeight: 700, color: isProfit ? '#4ade80' : '#f87171', letterSpacing: '-0.03em' }}
+                >
+                  {isProfit ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
+                </span>
+                <span
+                  className="font-number text-[12px]"
+                  style={{ fontWeight: 600, color: isProfit ? '#4ade80' : '#f87171' }}
+                >
+                  {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%
+                </span>
+              </div>
+            </div>
 
-        {/* P&L row */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg"
-              style={{
-                background: isProfit ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-                border: `1px solid ${isProfit ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
-              }}
-            >
-              {isProfit
-                ? <TrendingUp size={11} style={{ color: '#4ade80' }} />
-                : <TrendingDown size={11} style={{ color: '#f87171' }} />}
-              <span className="font-number text-xs font-700" style={{ color: isProfit ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-                {isProfit ? '+' : ''}${Math.abs(pnl).toFixed(2)}
+            <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.08)' }} />
+
+            {/* Win rate */}
+            <div className="text-center">
+              <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Win Rate</p>
+              <p className="font-number text-[18px] leading-none" style={{ fontWeight: 700, color: '#fff', letterSpacing: '-0.03em' }}>
+                {winRate}%
+              </p>
+            </div>
+
+            <div className="w-px h-8" style={{ background: 'rgba(255,255,255,0.08)' }} />
+
+            {/* Trades */}
+            <div className="text-right">
+              <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>Trades</p>
+              <p className="font-number text-[18px] leading-none" style={{ fontWeight: 700, color: '#fff', letterSpacing: '-0.03em' }}>
+                {stats.totalTrades}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4 space-y-3">
+
+        {/* ── Wallet ─────────────────────────────────────── */}
+        <WalletCard />
+
+        {/* ── Quick Actions ───────────────────────────────── */}
+        <div className="card-base !px-4 !py-4">
+          <p
+            className="text-[10px] uppercase tracking-[0.1em] mb-3.5"
+            style={{ color: 'var(--ink-3)', fontWeight: 700 }}
+          >
+            Quick Actions
+          </p>
+          <div className="grid grid-cols-4 gap-1">
+            <QuickActionButton icon={ArrowDownLeft} label="Deposit"  onClick={() => {}} />
+            <QuickActionButton icon={ArrowUpRight}  label="Withdraw" onClick={() => {}} />
+            <QuickActionButton icon={Clock}          label="History"  onClick={() => navigate('/trading')} />
+            <QuickActionButton icon={HelpCircle}     label="Support"  onClick={() => {}} />
+          </div>
+        </div>
+
+        {/* ── Challenge CTA ───────────────────────────────── */}
+        {!activeChallenge && (
+          <button
+            onClick={() => navigate('/challenges')}
+            className="w-full flex items-center justify-between px-4 py-4 rounded-2xl active:opacity-80 transition-opacity"
+            style={{
+              background: 'linear-gradient(135deg,rgba(77,184,255,0.12) 0%,rgba(42,168,242,0.06) 100%)',
+              border: '1px solid rgba(77,184,255,0.22)',
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'rgba(77,184,255,0.15)' }}
+              >
+                <Zap size={18} style={{ color: 'var(--ton)' }} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm" style={{ fontWeight: 700, color: 'var(--ink-1)' }}>Start a Challenge</p>
+                <p className="text-[11px] mt-0.5" style={{ color: 'var(--ink-3)' }}>Get funded from $5K → $100K</p>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: 'var(--ton)' }} />
+          </button>
+        )}
+
+        {/* ── Active challenge progress ────────────────────── */}
+        {activeChallenge && (
+          <div className="card-base !p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Activity size={14} style={{ color: 'var(--ton)' }} />
+                <p className="text-sm" style={{ fontWeight: 700, color: 'var(--ink-1)' }}>
+                  {activeChallenge.tierName} · Phase {activeChallenge.phase}
+                </p>
+              </div>
+              <span className="font-number text-xs" style={{ fontWeight: 700, color: 'var(--ton)' }}>
+                {activeChallenge.progress.percentComplete}%
               </span>
             </div>
-            <span className="font-number text-xs font-700" style={{ color: isProfit ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-              {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%
-            </span>
+            <div className="progress-track mb-2">
+              <div
+                className="progress-fill progress-fill-accent"
+                style={{ width: `${Math.min(100, activeChallenge.progress.percentComplete)}%` }}
+              />
+            </div>
+            <div className="flex justify-between">
+              <p className="font-number text-[11px]" style={{ color: 'var(--ink-3)' }}>
+                ${activeChallenge.progress.profitCurrent.toLocaleString()} earned
+              </p>
+              <p className="font-number text-[11px]" style={{ color: 'var(--ink-3)' }}>
+                ${activeChallenge.progress.profitTarget.toLocaleString()} target
+              </p>
+            </div>
           </div>
-          <span className="text-[10px] text-white/25">Today's P&L</span>
-        </div>
-      </div>
+        )}
 
-      {/* ── Wallet ─────────────────────────────────────────────── */}
-      <WalletCard />
+        {/* ── Performance chart ────────────────────────────── */}
+        <PerformanceSummary />
 
-      {/* ── Quick Actions ──────────────────────────────────────── */}
-      <div
-        className="rounded-2xl px-4 py-4"
-        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
-      >
-        <p className="text-[10px] font-700 text-tertiary uppercase tracking-[0.1em] mb-3.5" style={{ fontWeight: 700 }}>
-          Quick Actions
-        </p>
-        <div className="grid grid-cols-4 gap-1">
-          <QuickActionButton icon={ArrowDownLeft} label="Deposit"  onClick={() => {}} />
-          <QuickActionButton icon={ArrowUpRight}  label="Withdraw" onClick={() => {}} />
-          <QuickActionButton icon={Clock}          label="History"  onClick={() => navigate('/trading')} />
-          <QuickActionButton icon={HelpCircle}     label="Support"  onClick={() => {}} />
-        </div>
-      </div>
+        {/* ── Drawdown monitor ─────────────────────────────── */}
+        <DrawdownMonitor />
 
-      {/* ── Challenge CTA (only when no active challenge) ────────── */}
-      {!activeChallenge && (
-        <button
-          onClick={() => navigate('/challenges')}
-          className="w-full flex items-center justify-between px-4 py-4 rounded-2xl active:opacity-80 transition-opacity"
-          style={{
-            background: 'linear-gradient(130deg, #0e3a5c 0%, #0d4a7a 100%)',
-            border: '1px solid rgba(77,184,255,0.2)',
-            boxShadow: '0 4px 20px rgba(77,184,255,0.12)',
-          }}
-        >
-          <div className="flex items-center gap-3">
+        {/* ── Platform pillars ─────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { icon: Shield,     label: 'Risk Managed',    color: 'var(--ton)',     bg: 'rgba(77,184,255,0.06)'  },
+            { icon: TrendingUp, label: '80% Profit Split', color: 'var(--ink-up)', bg: 'rgba(34,197,94,0.06)'   },
+            { icon: Zap,        label: 'Instant Payouts',  color: 'var(--ink-warn)',bg: 'rgba(245,158,11,0.06)' },
+          ].map((f) => (
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(77,184,255,0.2)' }}
+              key={f.label}
+              className="rounded-xl py-3 px-2 flex flex-col items-center gap-1.5"
+              style={{ background: f.bg }}
             >
-              <Zap size={17} style={{ color: '#4DB8FF' }} />
+              <f.icon size={14} style={{ color: f.color }} strokeWidth={1.8} />
+              <p className="text-[9.5px] text-center leading-tight" style={{ color: f.color, fontWeight: 600 }}>{f.label}</p>
             </div>
-            <div className="text-left">
-              <p className="text-sm text-white leading-tight" style={{ fontWeight: 700 }}>Start a Challenge</p>
-              <p className="text-[11px] text-blue-300/60 mt-0.5">Get funded from $5K to $100K</p>
-            </div>
-          </div>
-          <ChevronRight size={16} style={{ color: 'rgba(77,184,255,0.5)' }} />
-        </button>
-      )}
+          ))}
+        </div>
 
-      {/* ── Stats strip ────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: 'Balance', value: `$${(balance / 1000).toFixed(1)}K`, sub: 'Account' },
-          { label: 'Return',  value: `${isProfit ? '+' : ''}${pnlPercent.toFixed(1)}%`, sub: 'P&L', profit: isProfit },
-          { label: 'Phase',   value: activeChallenge ? `P${activeChallenge.phase}` : '—', sub: activeChallenge?.tierName ?? 'Inactive' },
-        ].map((s) => (
-          <div
-            key={s.label}
-            className="rounded-xl px-3 py-3"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
-          >
-            <p className="text-[10px] text-tertiary mb-1">{s.label}</p>
-            <p
-              className="font-number text-[15px] leading-none"
-              style={{
-                fontWeight: 700,
-                color: s.profit !== undefined
-                  ? (s.profit ? 'var(--text-success)' : 'var(--text-danger)')
-                  : 'var(--text-primary)',
-              }}
-            >
-              {s.value}
-            </p>
-            <p className="text-[10px] text-tertiary mt-0.5">{s.sub}</p>
-          </div>
-        ))}
+        {/* ── Recent Activity ──────────────────────────────── */}
+        <RecentActivity />
       </div>
-
-      {/* ── Performance chart ──────────────────────────────────── */}
-      <PerformanceSummary />
-
-      {/* ── Drawdown monitor ───────────────────────────────────── */}
-      <DrawdownMonitor />
-
-      {/* ── Platform pillars ───────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { icon: Shield,     text: 'Risk Managed',    color: '#4DB8FF', bg: 'rgba(77,184,255,0.06)'  },
-          { icon: TrendingUp, text: '80% Profit Split', color: '#22c55e', bg: 'rgba(34,197,94,0.06)'   },
-          { icon: Zap,        text: 'Instant Payouts',  color: '#f59e0b', bg: 'rgba(245,158,11,0.06)'  },
-        ].map((f) => (
-          <div
-            key={f.text}
-            className="rounded-xl py-3 px-2 flex flex-col items-center gap-1.5"
-            style={{ background: f.bg }}
-          >
-            <f.icon size={14} style={{ color: f.color }} strokeWidth={1.8} />
-            <p className="text-[9.5px] text-center leading-tight" style={{ color: f.color, fontWeight: 600 }}>{f.text}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Recent Activity ─────────────────────────────────────── */}
-      <RecentActivity />
     </div>
   );
 }
