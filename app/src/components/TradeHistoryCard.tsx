@@ -93,8 +93,8 @@ export default function TradeHistoryCard({ record }: Props) {
               const m = Math.floor((new Date(record.closedAt).getTime() - new Date(record.openedAt).getTime()) / 60000);
               return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
             })() },
-            { label: 'Slippage', value: `${record.slippage}%` },
-            { label: 'Breakeven', value: record.breakevenSet ? 'Active' : 'No' },
+            { label: 'Close', value: `${record.closePercent}%` },
+            { label: 'Fee', value: `$${record.fee.toFixed(4)}` },
           ].map((row) => (
             <div key={row.label}>
               <p className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: 'var(--ink-3)' }}>{row.label}</p>
