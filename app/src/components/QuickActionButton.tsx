@@ -1,34 +1,21 @@
-import type { LucideIcon } from 'lucide-react';
+import { type LucideIcon } from 'lucide-react';
 
 interface Props {
   icon: LucideIcon;
   label: string;
   onClick?: () => void;
-  accent?: boolean;
 }
 
-export default function QuickActionButton({ icon: Icon, label, onClick, accent }: Props) {
+export default function QuickActionButton({ icon: Icon, label, onClick }: Props) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center gap-2 select-none active:opacity-60 transition-opacity"
+      className="flex flex-col items-center gap-1 select-none"
     >
-      <div
-        className="w-12 h-12 rounded-2xl flex items-center justify-center"
-        style={{
-          background: accent ? 'rgba(77,184,255,0.1)' : 'var(--bg-sunken)',
-          border: `1px solid ${accent ? 'rgba(77,184,255,0.22)' : 'var(--line)'}`,
-        }}
-      >
-        <Icon
-          size={19}
-          style={{ color: accent ? 'var(--ton)' : 'var(--ink-2)' }}
-          strokeWidth={1.7}
-        />
+      <div className="w-14 h-14 rounded-full border border-default flex items-center justify-center active:opacity-80 transition-opacity" style={{ background: "var(--bg-card)", boxShadow: "var(--shadow-sm)" }}>
+        <Icon size={22} className="text-accent-app" />
       </div>
-      <span className="text-[10px] leading-none" style={{ color: 'var(--ink-3)', fontWeight: 500 }}>
-        {label}
-      </span>
+      <span className="text-[11px] font-medium text-secondary">{label}</span>
     </button>
   );
 }

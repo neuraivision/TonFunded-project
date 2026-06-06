@@ -2,11 +2,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Trophy, TrendingUp, ArrowLeftRight, User } from 'lucide-react';
 
 const tabs = [
-  { path: '/',           icon: Home,          label: 'Home'       },
-  { path: '/challenges', icon: Trophy,         label: 'Challenges' },
-  { path: '/trading',    icon: TrendingUp,     label: 'Trading'    },
-  { path: '/swap',       icon: ArrowLeftRight, label: 'Swap'       },
-  { path: '/profile',    icon: User,           label: 'Profile'    },
+  { path: '/', icon: Home, label: 'Home' },
+  { path: '/challenges', icon: Trophy, label: 'Challenges' },
+  { path: '/trading', icon: TrendingUp, label: 'Trading' },
+  { path: '/swap', icon: ArrowLeftRight, label: 'Swap' },
+  { path: '/profile', icon: User, label: 'Profile' },
 ];
 
 export default function BottomNav() {
@@ -15,14 +15,12 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 max-w-lg mx-auto"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-default max-w-lg mx-auto" style={{ background: "var(--bg-card)" }}
       style={{
-        background: 'var(--bg-card)',
-        borderTop: '1px solid var(--line)',
-        boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
+        boxShadow: '0 -4px 20px rgba(0,0,0,0.06)',
       }}
     >
-      <div className="flex h-[56px]">
+      <div className="flex items-center justify-around h-[60px]">
         {tabs.map((tab) => {
           const isActive =
             tab.path === '/'
@@ -33,40 +31,34 @@ export default function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="flex-1 flex flex-col items-center justify-center gap-[4px] relative select-none"
+              className="flex flex-col items-center justify-center gap-1 w-full h-full relative select-none transition-opacity"
               style={{ WebkitTapHighlightColor: 'transparent' }}
             >
-              {/* Active bar */}
-              <span
-                className="absolute top-0 rounded-full transition-all duration-200"
-                style={{
-                  left: '50%', transform: 'translateX(-50%)',
-                  width: isActive ? '18px' : '0px',
-                  height: '2px',
-                  background: 'linear-gradient(90deg,#4DB8FF,#2aa8f2)',
-                  opacity: isActive ? 1 : 0,
-                }}
-              />
-
-              {/* Icon */}
+              {/* Active indicator dot */}
+              {isActive && (
+                <div
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
+                  style={{ background: 'var(--gradient-accent)' }}
+                />
+              )}
+              
+              {/* Icon container */}
               <div
-                className="flex items-center justify-center rounded-xl transition-all duration-150"
-                style={{
-                  width: '34px', height: '24px',
-                  background: isActive ? 'rgba(77,184,255,0.09)' : 'transparent',
-                }}
+                className={`flex items-center justify-center w-9 h-7 rounded-xl transition-all duration-150 ${
+                  isActive ? 'bg-accent-light' : ''
+                }`}
               >
                 <tab.icon
-                  size={17}
-                  strokeWidth={isActive ? 2.2 : 1.6}
-                  style={{ color: isActive ? 'var(--ton)' : 'var(--ink-3)' }}
+                  size={isActive ? 19 : 20}
+                  className={isActive ? 'text-accent-app' : 'text-tertiary'}
+                  strokeWidth={isActive ? 2.5 : 1.75}
                 />
               </div>
-
-              {/* Label */}
               <span
-                className="text-[9.5px] leading-none"
-                style={{ color: isActive ? 'var(--ton)' : 'var(--ink-3)', fontWeight: isActive ? 600 : 400 }}
+                className={`text-[10px] leading-none transition-colors ${
+                  isActive ? 'text-accent-app font-700' : 'text-tertiary font-500'
+                }`}
+                style={{ fontWeight: isActive ? 700 : 500 }}
               >
                 {tab.label}
               </span>
@@ -74,7 +66,7 @@ export default function BottomNav() {
           );
         })}
       </div>
-      <div style={{ height: 'env(safe-area-inset-bottom,0px)' }} />
+      <div className="h-[env(safe-area-inset-bottom,0px)]" />
     </nav>
   );
 }
