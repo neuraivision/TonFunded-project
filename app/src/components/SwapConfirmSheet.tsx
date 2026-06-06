@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle, ArrowRight, X, Info, Loader2 } from 'lucide-react';
 import type { SwapQuote, SwapToken } from '@/types';
+import TokenIcon from '@/components/TokenIcon';
 
 interface Props {
   isOpen: boolean;
@@ -63,12 +64,14 @@ function PriceImpactBadge({ impact }: { impact: number }) {
 }
 
 function TokenAvatar({ token, size = 'md' }: { token: SwapToken; size?: 'sm' | 'md' }) {
-  const dim = size === 'sm' ? 'w-6 h-6 text-[10px]' : 'w-9 h-9 text-xs';
   return (
-    <div className={`${dim} rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold`}
-      style={{ backgroundColor: token.logoColor }}>
-      {token.logoInitials}
-    </div>
+    <TokenIcon
+      logoUrl={token.logoUrl}
+      symbol={token.symbol}
+      color={token.logoColor}
+      initials={token.logoInitials}
+      size={size === 'sm' ? 24 : 36}
+    />
   );
 }
 

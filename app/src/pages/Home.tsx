@@ -110,11 +110,11 @@ export default function Home() {
         <p className="text-[10px] font-700 text-tertiary uppercase tracking-[0.1em] mb-3.5" style={{ fontWeight: 700 }}>
           Quick Actions
         </p>
-        <div className="grid grid-cols-4 gap-1">
-          <QuickActionButton icon={Rocket}   label="Get Funded"     accent onClick={() => navigate('/challenges')} />
-          <QuickActionButton icon={Banknote} label="Request Payout" onClick={() => setPayoutOpen(true)} />
-          <QuickActionButton icon={Clock}    label="History"        onClick={() => navigate('/trading')} />
-          <QuickActionButton icon={LifeBuoy} label="Support"        onClick={openSupport} />
+        <div className="grid grid-cols-4 gap-2">
+          <QuickActionButton icon={Rocket}   label="Get Funded"     color="#4DB8FF" primary onClick={() => navigate('/challenges')} />
+          <QuickActionButton icon={Banknote} label="Request Payout" color="#16a34a" onClick={() => setPayoutOpen(true)} />
+          <QuickActionButton icon={Clock}    label="History"        color="#6366f1" onClick={() => navigate('/trading')} />
+          <QuickActionButton icon={LifeBuoy} label="Support"        color="#f59e0b" onClick={openSupport} />
         </div>
       </div>
 
