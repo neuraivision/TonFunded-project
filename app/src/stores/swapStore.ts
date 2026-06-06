@@ -6,13 +6,15 @@ import type {
   SwapHistoryItem,
   SwapState,
 } from '@/types';
+import { fetchStonfiMarket } from '@/lib/stonfi';
 
-// ─── Mock STON.fi token catalogue ─────────────────────────────────────────────
+// ─── STON.fi token catalogue ──────────────────────────────────────────────────
 //
-// These 10 Jettons represent the real tokens tradeable on STON.fi as of mid-2025.
-// Prices, volumes, and balances are realistic mock values for demonstration.
-// When wiring up the real STON.fi SDK, replace `usdPrice` with live feed data
-// and `balance` with the on-chain wallet balance query result.
+// Real TON Jettons tradeable on STON.fi, keyed by their actual on-chain contract
+// addresses. `usdPrice` and `logoUrl` are seeded with recent values so the UI
+// renders instantly, then refreshed live from the STON.fi API via
+// `refreshMarket()` (see below). `balance` is a demo holding for the challenge
+// account; `priceChange24h`/`volume24hUsd` are indicative.
 
 export const STONFI_TOKENS: SwapToken[] = [
   {
@@ -20,12 +22,13 @@ export const STONFI_TOKENS: SwapToken[] = [
     name: 'Toncoin',
     address: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
     decimals: 9,
-    usdPrice: 5.84,
+    usdPrice: 1.56,
     balance: 124.5,
     priceChange24h: 2.34,
     volume24hUsd: 48200000,
     logoColor: '#0098EA',
-    logoInitials: 'TO',
+    logoInitials: 'TON',
+    logoUrl: 'https://asset.ston.fi/img/EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c/c8d21a3d93f9b574381e0a8d8f16d48b325dd8f54ce172f599c1e9d6c62f03f7',
   },
   {
     symbol: 'USDT',
@@ -38,106 +41,121 @@ export const STONFI_TOKENS: SwapToken[] = [
     volume24hUsd: 124000000,
     logoColor: '#26A17B',
     logoInitials: 'US',
-  },
-  {
-    symbol: 'DOGS',
-    name: 'DOGS',
-    address: 'EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS',
-    decimals: 0,
-    usdPrice: 0.00489,
-    balance: 2450000,
-    priceChange24h: 8.19,
-    volume24hUsd: 3800000,
-    logoColor: '#F6A623',
-    logoInitials: 'DO',
+    logoUrl: 'https://asset.ston.fi/img/EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs/1a87edfee9a28b05578853952e5effb8cc30af1e0fb90043aa2ce19dce490849',
   },
   {
     symbol: 'NOT',
     name: 'Notcoin',
     address: 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT',
     decimals: 9,
-    usdPrice: 0.00821,
+    usdPrice: 0.000375,
     balance: 180000,
     priceChange24h: -3.12,
     volume24hUsd: 9100000,
-    logoColor: '#2C3E50',
+    logoColor: '#000000',
     logoInitials: 'NO',
+    logoUrl: 'https://asset.ston.fi/img/EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT/c0dcf1d0e16604a22040bed2a5ec97765479fdba99538fa0bb5c243bb6220c5e',
+  },
+  {
+    symbol: 'DOGS',
+    name: 'Dogs',
+    address: 'EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS',
+    decimals: 9,
+    usdPrice: 0.0000393,
+    balance: 2450000,
+    priceChange24h: 8.19,
+    volume24hUsd: 3800000,
+    logoColor: '#F6A623',
+    logoInitials: 'DO',
+    logoUrl: 'https://asset.ston.fi/img/EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS/b84413017d2b6a57d31daf1281245cb39a59e189a8a107047db39470a08c0c9e',
+  },
+  {
+    symbol: 'CATI',
+    name: 'Catizen',
+    address: 'EQD-cvR0Nz6XAyRBvbhz-abTrRC6sI5tvHvvpeQraV9UAAD7',
+    decimals: 9,
+    usdPrice: 0.0466,
+    balance: 5200,
+    priceChange24h: 5.42,
+    volume24hUsd: 2400000,
+    logoColor: '#FF8A3D',
+    logoInitials: 'CA',
+    logoUrl: 'https://asset.ston.fi/img/EQD-cvR0Nz6XAyRBvbhz-abTrRC6sI5tvHvvpeQraV9UAAD7/7177e55473596c552cde4be5b94cc222ee229a49347f652303086b336cf188e8',
   },
   {
     symbol: 'REDO',
     name: 'Resistance Dog',
-    address: 'EQDtFpEwcFAEcRe5mLVh2N6C0x-_hJEM7W61_JLnSF_REDO',
+    address: 'EQBZ_cafPyDr5KUTs0aNxh0ZTDhkpEZONmLJA2SNGlLm4Cko',
     decimals: 9,
-    usdPrice: 0.0218,
-    balance: 95000,
+    usdPrice: 0.0572,
+    balance: 4200,
     priceChange24h: -6.84,
     volume24hUsd: 1200000,
     logoColor: '#E74C3C',
     logoInitials: 'RE',
+    logoUrl: 'https://asset.ston.fi/img/EQBZ_cafPyDr5KUTs0aNxh0ZTDhkpEZONmLJA2SNGlLm4Cko/88d0249592ca2d167bbd0045754810f33b573193934114d7cc9fd33d150667f3',
   },
   {
-    symbol: 'HYDRA',
-    name: 'Hydra Finance',
-    address: 'EQBWihlcXpEEWhy5HYDRA_mock_address_for_demo_only',
+    symbol: 'MAJOR',
+    name: 'Major',
+    address: 'EQCuPm01HldiduQ55xaBF_1kaW_WAUy5DHey8suqzU_MAJOR',
     decimals: 9,
-    usdPrice: 0.00034,
-    balance: 5500000,
-    priceChange24h: 14.6,
-    volume24hUsd: 680000,
-    logoColor: '#8E44AD',
-    logoInitials: 'HY',
-  },
-  {
-    symbol: 'FISH',
-    name: 'Catfish',
-    address: 'EQCatFISH_mock_address_ton_blockchain_demo_only_v2',
-    decimals: 9,
-    usdPrice: 0.000071,
-    balance: 12000000,
-    priceChange24h: 22.4,
-    volume24hUsd: 420000,
-    logoColor: '#1ABC9C',
-    logoInitials: 'FI',
-  },
-  {
-    symbol: 'BOLT',
-    name: 'TON Bolt',
-    address: 'EQBoltTON_mock_address_ton_blockchain_demo_only_v3',
-    decimals: 9,
-    usdPrice: 0.00156,
-    balance: 750000,
-    priceChange24h: -1.8,
+    usdPrice: 0.0435,
+    balance: 6800,
+    priceChange24h: 11.2,
     volume24hUsd: 2100000,
-    logoColor: '#F39C12',
-    logoInitials: 'BO',
+    logoColor: '#2E7D32',
+    logoInitials: 'MA',
+    logoUrl: 'https://asset.ston.fi/img/EQCuPm01HldiduQ55xaBF_1kaW_WAUy5DHey8suqzU_MAJOR/aea6edb39acc18a2958ed78165051844b8d4cec92b860866a25dd7f300a07e50',
+  },
+  {
+    symbol: 'STON',
+    name: 'STON',
+    address: 'EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO',
+    decimals: 9,
+    usdPrice: 0.514,
+    balance: 480,
+    priceChange24h: 3.1,
+    volume24hUsd: 1500000,
+    logoColor: '#1E88E5',
+    logoInitials: 'ST',
+    logoUrl: 'https://asset.ston.fi/img/EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO/7c9798ce1e64707fb4cb8f025d4060f66b386ed381b50498e3b88731cedeffe8',
   },
   {
     symbol: 'GRAM',
-    name: 'OpenGram',
-    address: 'EQCOpenGRAM_mock_address_ton_blockchain_demo_v4',
+    name: 'Gram',
+    address: 'EQBrDGesI9uyzGzVi3kjiRJt1k4Vf7iXVX7AQVQyEPvBYboQ',
     decimals: 9,
-    usdPrice: 0.0423,
-    balance: 8400,
+    usdPrice: 0.001103,
+    balance: 95000,
     priceChange24h: 5.91,
     volume24hUsd: 5600000,
     logoColor: '#3498DB',
     logoInitials: 'GR',
+    logoUrl: 'https://asset.ston.fi/img/EQBrDGesI9uyzGzVi3kjiRJt1k4Vf7iXVX7AQVQyEPvBYboQ/3890d78053fcad2f26eb51f8fd436ede2591d363a4e248b2290754edbb069792',
   },
   {
-    symbol: 'SCALE',
-    name: 'Scaleton',
-    address: 'EQBSCALEton_mock_address_ton_blockchain_demo_v5',
+    symbol: 'JETTON',
+    name: 'JetTon',
+    address: 'EQAQXlWJvGbbFfE8F3oS8s87lIgdovS455IsWFaRdmJetTon',
     decimals: 9,
-    usdPrice: 0.812,
-    balance: 320,
-    priceChange24h: 3.25,
+    usdPrice: 0.0299,
+    balance: 8400,
+    priceChange24h: -1.8,
     volume24hUsd: 890000,
-    logoColor: '#27AE60',
-    logoInitials: 'SC',
+    logoColor: '#7C4DFF',
+    logoInitials: 'JE',
+    logoUrl: 'https://asset.ston.fi/img/EQAQXlWJvGbbFfE8F3oS8s87lIgdovS455IsWFaRdmJetTon/8f3d0eaf65c9f877a21f0b102832b431c0df7a6b7788b8df9a57a4d0305320bf',
   },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Look up a known token's visual metadata by symbol (case-insensitive). */
+export function getTokenBySymbol(symbol: string): SwapToken | undefined {
+  const s = symbol.trim().toUpperCase();
+  return STONFI_TOKENS.find((t) => t.symbol.toUpperCase() === s);
+}
 
 const generateId = (): string => Math.random().toString(36).substring(2, 11);
 
@@ -298,6 +316,43 @@ export const useSwapStore = create<SwapState>((set, get) => ({
   errorMessage: '',
   swapHistory: initialSwapHistory,
   availableTokens: STONFI_TOKENS,
+  pricesLoading: false,
+  pricesUpdatedAt: null,
+
+  // ── refreshMarket ───────────────────────────────────────────────────────────
+  // Pulls live USD prices + official icons from STON.fi and merges them into the
+  // token catalogue. Keeps demo balances; only price/icon fields are updated.
+  refreshMarket: async () => {
+    if (get().pricesLoading) return;
+    set({ pricesLoading: true });
+    try {
+      const tokens = get().availableTokens;
+      const market = await fetchStonfiMarket(tokens.map((t) => t.address));
+      if (Object.keys(market).length === 0) {
+        set({ pricesLoading: false });
+        return;
+      }
+      const merge = (t: SwapToken): SwapToken => {
+        const m = market[t.address];
+        if (!m) return t;
+        return {
+          ...t,
+          usdPrice: m.usdPrice,
+          decimals: m.decimals ?? t.decimals,
+          logoUrl: m.logoUrl ?? t.logoUrl,
+        };
+      };
+      set((state) => ({
+        availableTokens: state.availableTokens.map(merge),
+        fromToken: merge(state.fromToken),
+        toToken: merge(state.toToken),
+        pricesLoading: false,
+        pricesUpdatedAt: Date.now(),
+      }));
+    } catch {
+      set({ pricesLoading: false });
+    }
+  },
 
   // ── setFromToken ────────────────────────────────────────────────────────────
   // Guard: prevent the user from selecting the same token on both sides.

@@ -46,6 +46,7 @@ interface TradingState {
   recomputeStats: () => void;
   updateSlippage: (id: string, slippage: number) => void;
   setBreakeven: (id: string) => void;
+  clearBreakeven: (id: string) => void;
   runRiskCheck: (id: string, closePercent: number) => import('@/types').RiskCheckResult;
 }
 
@@ -544,6 +545,14 @@ export const useTradingStore = create<TradingState>((set, get) => ({
     set((state) => ({
       positions: state.positions.map((p) =>
         p.id === id ? { ...p, breakevenSet: true, breakevenPrice: p.entryPrice } : p
+      ),
+    }));
+  },
+
+  clearBreakeven: (id: string) => {
+    set((state) => ({
+      positions: state.positions.map((p) =>
+        p.id === id ? { ...p, breakevenSet: false, breakevenPrice: undefined } : p
       ),
     }));
   },

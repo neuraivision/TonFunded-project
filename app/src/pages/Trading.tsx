@@ -60,47 +60,67 @@ export default function Trading() {
       {/* P&L Hero Card */}
       <div
         className="rounded-2xl p-5 text-white relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1a6faa 0%, #2aa8f2 50%, #4DB8FF 100%)' }}
+        style={{
+          background: 'linear-gradient(150deg, #091828 0%, #0d2138 55%, #081624 100%)',
+          border: '1px solid rgba(77,184,255,0.12)',
+          boxShadow: '0 8px 28px rgba(8,18,32,0.45)',
+        }}
       >
-        {/* Background decoration */}
+        {/* Dynamic P&L glow — green on profit, red on loss */}
         <div
-          className="absolute top-0 right-0 w-40 h-40 rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.07)', transform: 'translate(30%, -30%)' }}
+          className="absolute top-0 right-0 w-52 h-52 pointer-events-none"
+          style={{
+            background: `radial-gradient(circle, ${isProfit ? 'rgba(34,197,94,0.16)' : 'rgba(239,68,68,0.15)'} 0%, transparent 65%)`,
+            transform: 'translate(25%, -25%)',
+          }}
         />
         <div
-          className="absolute bottom-0 left-10 w-24 h-24 rounded-full pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.05)', transform: 'translateY(40%)' }}
+          className="absolute bottom-0 left-0 w-36 h-36 pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(77,184,255,0.07) 0%, transparent 65%)', transform: 'translate(-20%, 25%)' }}
         />
 
-        <p className="text-xs font-600 text-white/70 uppercase tracking-widest mb-2">
-          Live P&L
-        </p>
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              {isProfit ? (
-                <TrendingUp size={18} className="text-white/80" />
-              ) : (
-                <TrendingDown size={18} className="text-white/80" />
-              )}
-              <p className="font-number text-3xl font-700 leading-none" style={{ fontWeight: 700, letterSpacing: '-0.04em' }}>
-                {isProfit ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
-              </p>
-            </div>
-            <p className="text-sm text-white/70">
-              {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}% return
+        {/* Label row */}
+        <div className="flex items-center justify-between mb-3.5 relative">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: '0 0 5px rgba(74,222,128,0.8)' }} />
+            <p className="text-[10px] font-700 text-white/45 uppercase tracking-[0.14em]" style={{ fontWeight: 700 }}>
+              Live P&L
             </p>
           </div>
-          <div className="text-right">
-            <div
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)' }}
-            >
-              <Zap size={12} className="text-white" />
-              <span className="text-xs font-700 text-white">{positions.length} Open</span>
-            </div>
+          <div
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{ background: 'rgba(77,184,255,0.12)', border: '1px solid rgba(77,184,255,0.22)' }}
+          >
+            <Zap size={11} style={{ color: '#4DB8FF' }} />
+            <span className="text-[11px] font-700 text-blue-200" style={{ fontWeight: 700 }}>{positions.length} Open</span>
           </div>
         </div>
+
+        {/* Big P&L number */}
+        <div className="flex items-center gap-2.5 relative">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: isProfit ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', border: `1px solid ${isProfit ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}` }}
+          >
+            {isProfit
+              ? <TrendingUp size={17} style={{ color: '#4ade80' }} />
+              : <TrendingDown size={17} style={{ color: '#f87171' }} />}
+          </div>
+          <p
+            className="font-number text-[34px] leading-none"
+            style={{ fontWeight: 700, letterSpacing: '-0.04em', color: isProfit ? '#4ade80' : '#f87171' }}
+          >
+            {isProfit ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
+          </p>
+        </div>
+
+        {/* Return % */}
+        <p
+          className="text-[13px] mt-2.5 font-number relative"
+          style={{ color: isProfit ? 'rgba(74,222,128,0.7)' : 'rgba(248,113,113,0.7)' }}
+        >
+          {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}% return today
+        </p>
       </div>
 
       {/* Stats row */}

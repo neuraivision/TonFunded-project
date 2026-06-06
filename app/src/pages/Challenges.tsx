@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useChallengeStore, CHALLENGE_TIERS } from '@/stores/challengeStore';
-import { Zap, CheckCircle, TrendingUp, Shield, Calendar, Target, ChevronRight, Star } from 'lucide-react';
+import { Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target, ChevronRight, Star } from 'lucide-react';
 
 const TIER_STYLES: Record<string, {
   gradient: string;
@@ -121,8 +121,8 @@ export default function Challenges() {
 
       {/* Success Toast */}
       {showSuccess && (
-        <div className="toast-enter fixed top-4 left-4 right-4 z-[100] rounded-2xl p-4 flex items-center gap-3"
-          style={{ background: '#fff', border: '1px solid rgba(34,197,94,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 0 16px rgba(34,197,94,0.15)' }}>
+        <div className="page-enter fixed top-4 left-4 right-4 z-[100] rounded-2xl p-4 flex items-center gap-3 max-w-lg mx-auto"
+          style={{ background: 'var(--bg-card)', border: '1px solid rgba(34,197,94,0.25)', boxShadow: '0 8px 32px rgba(0,0,0,0.18), 0 0 16px rgba(34,197,94,0.15)' }}>
           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(22,163,74,0.1)" }}>
             <CheckCircle size={20} className="text-green-500" />
           </div>
@@ -211,13 +211,11 @@ export default function Challenges() {
                   <span className="text-[11px] text-secondary">80% profit split</span>
                 </div>
                 <div
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-700 transition-all ${
-                    isSelected ? 'text-white' : ''
-                  }`}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-700 transition-all"
                   style={
                     isSelected
-                      ? { background: style.badgeText, boxShadow: `0 2px 8px ${style.glow}` }
-                      : { background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)' }
+                      ? { background: 'var(--gradient-accent)', color: '#fff', boxShadow: '0 2px 10px rgba(77,184,255,0.3)', fontWeight: 700 }
+                      : { background: 'rgba(77,184,255,0.12)', color: '#4DB8FF', border: '1px solid rgba(77,184,255,0.25)', fontWeight: 700 }
                   }
                 >
                   {isSelected ? (
@@ -226,7 +224,7 @@ export default function Challenges() {
                       Selected
                     </>
                   ) : (
-                    <>Select <ChevronRight size={11} /></>
+                    <>Get Funded <ChevronRight size={11} /></>
                   )}
                 </div>
               </div>
@@ -245,8 +243,8 @@ export default function Challenges() {
               className="btn-primary !py-4 text-base"
               style={{ boxShadow: '0 8px 24px rgba(77,184,255,0.35), 0 4px 12px rgba(0,0,0,0.1)' }}
             >
-              <Zap size={18} />
-              Purchase {tier?.name} Challenge — ${tier?.fee}
+              <Rocket size={18} />
+              Get Funded — {tier?.name} (${tier?.fee})
             </button>
           </div>
         );

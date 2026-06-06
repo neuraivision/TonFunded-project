@@ -49,10 +49,17 @@ function TelegramThemeSync() {
   return null;
 }
 
+// TON Connect manifest: served from this app's own origin so the wallet shows
+// TonFunded's name + icon. Override via VITE_TONCONNECT_MANIFEST_URL when the
+// production domain differs from where the app is hosted.
+const manifestUrl =
+  import.meta.env.VITE_TONCONNECT_MANIFEST_URL ||
+  `${window.location.origin}/tonconnect-manifest.json`;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <TonConnectUIProvider manifestUrl="https://ton-connect.github.io/demo-dapp-with-react-ui/tonconnect-manifest.json">
+      <TonConnectUIProvider manifestUrl={manifestUrl}>
         <TelegramThemeSync />
         <App />
       </TonConnectUIProvider>

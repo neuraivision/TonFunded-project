@@ -64,7 +64,7 @@ export default function RiskCheckModal({
                 isProfit ? 'text-green-600' : 'text-red-500'
               }`}
             >
-              {isProfit ? '+' : ''}${Math.abs(estimatedPnl).toFixed(2)}
+              {isProfit ? '+' : '-'}${Math.abs(estimatedPnl).toFixed(2)}
             </span>
           </div>
         </div>

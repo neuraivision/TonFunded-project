@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { X, Search, TrendingUp, TrendingDown } from 'lucide-react';
 import type { SwapToken } from '@/types';
+import TokenIcon from '@/components/TokenIcon';
 
 interface Props {
   isOpen: boolean;
@@ -13,12 +14,13 @@ interface Props {
 
 function TokenAvatar({ token }: { token: SwapToken }) {
   return (
-    <div
-      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
-      style={{ backgroundColor: token.logoColor }}
-    >
-      {token.logoInitials}
-    </div>
+    <TokenIcon
+      logoUrl={token.logoUrl}
+      symbol={token.symbol}
+      color={token.logoColor}
+      initials={token.logoInitials}
+      size={36}
+    />
   );
 }
 

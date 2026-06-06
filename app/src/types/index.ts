@@ -262,6 +262,8 @@ export interface SwapToken {
   volume24hUsd: number;
   logoColor: string;
   logoInitials: string;
+  /** Real on-chain token icon URL (STON.fi CDN). Falls back to logoColor/logoInitials. */
+  logoUrl?: string;
 }
 
 export interface SwapQuote {
@@ -301,6 +303,10 @@ export interface SwapState {
   errorMessage: string;
   swapHistory: SwapHistoryItem[];
   availableTokens: SwapToken[];
+  /** Whether a live price/icon refresh is in flight. */
+  pricesLoading: boolean;
+  /** Epoch ms of the last successful market refresh, or null if never. */
+  pricesUpdatedAt: number | null;
 
   setFromToken: (token: SwapToken) => void;
   setToToken: (token: SwapToken) => void;
@@ -311,4 +317,6 @@ export interface SwapState {
   executeSwap: () => Promise<void>;
   resetSwap: () => void;
   clearError: () => void;
+  /** Pulls live USD prices + icons from STON.fi and merges them into state. */
+  refreshMarket: () => Promise<void>;
 }

@@ -9,23 +9,24 @@ import {
   Zap,
   Info,
 } from 'lucide-react';
-import { useSwapStore, STONFI_TOKENS } from '@/stores/swapStore';
+import { useSwapStore } from '@/stores/swapStore';
 import TokenPickerSheet from '@/components/TokenPickerSheet';
 import SwapConfirmSheet from '@/components/SwapConfirmSheet';
 import SwapHistoryCard from '@/components/SwapHistoryCard';
+import TokenIcon from '@/components/TokenIcon';
 import type { SwapToken } from '@/types';
 
 // ─── Token avatar ─────────────────────────────────────────────────────────────
 
 function TokenAvatar({ token, size = 'sm' }: { token: SwapToken; size?: 'sm' | 'md' }) {
-  const dim = size === 'md' ? 'w-8 h-8 text-xs' : 'w-6 h-6 text-[10px]';
   return (
-    <div
-      className={`${dim} rounded-full flex items-center justify-center text-white font-bold flex-shrink-0`}
-      style={{ backgroundColor: token.logoColor }}
-    >
-      {token.logoInitials}
-    </div>
+    <TokenIcon
+      logoUrl={token.logoUrl}
+      symbol={token.symbol}
+      color={token.logoColor}
+      initials={token.logoInitials}
+      size={size === 'md' ? 32 : 24}
+    />
   );
 }
 
@@ -305,6 +306,9 @@ export default function Swap() {
     errorMessage,
     swapHistory,
     availableTokens,
+    pricesLoading,
+    pricesUpdatedAt,
+    refreshMarket,
     setFromToken,
     setToToken,
     setFromAmount,
@@ -333,6 +337,13 @@ export default function Swap() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [fromAmount, fromToken.symbol, toToken.symbol, slippage, fetchQuote]);
+
+  // Live STON.fi prices + icons: refresh on mount and every 45s.
+  useEffect(() => {
+    refreshMarket();
+    const id = setInterval(refreshMarket, 45000);
+    return () => clearInterval(id);
+  }, [refreshMarket]);
 
   const handleConfirmSwap = async () => {
     await executeSwap();
@@ -373,8 +384,21 @@ export default function Swap() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <p className="text-xs text-secondary">Spot trading · TON network</p>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{
+              background: pricesLoading ? '#f59e0b' : '#22c55e',
+              boxShadow: `0 0 5px ${pricesLoading ? 'rgba(245,158,11,0.7)' : 'rgba(34,197,94,0.7)'}`,
+            }}
+          />
+          <p className="text-xs text-secondary">
+            {pricesLoading
+              ? 'Syncing prices…'
+              : pricesUpdatedAt
+                ? 'Live STON.fi prices'
+                : 'Spot trading · TON network'}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -384,10 +408,11 @@ export default function Swap() {
             <Clock size={16} className="text-secondary" />
           </button>
           <button
-            onClick={resetSwap}
-            className="w-9 h-9 rounded-full border border-default flex items-center justify-center active:opacity-70" style={{ background: "var(--bg-card)" }}
+            onClick={() => { resetSwap(); refreshMarket(); }}
+            className="w-9 h-9 rounded-full border border-default flex items-center justify-center active:opacity-70 disabled:opacity-50" style={{ background: "var(--bg-card)" }}
+            disabled={pricesLoading}
           >
-            <RefreshCw size={16} className="text-secondary" />
+            <RefreshCw size={16} className={`text-secondary ${pricesLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>

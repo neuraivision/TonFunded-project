@@ -1,5 +1,7 @@
 import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import type { TradeRecord } from '@/types';
+import { getTokenBySymbol } from '@/stores/swapStore';
+import TokenIcon from '@/components/TokenIcon';
 
 interface Props {
   record: TradeRecord;
@@ -25,17 +27,20 @@ function formatTimeAgo(timestamp: string): string {
 
 export default function TradeHistoryCard({ record }: Props) {
   const isProfit = record.pnl >= 0;
-  const tokenInitials = record.tokenName.slice(0, 2).toUpperCase();
+  const token = getTokenBySymbol(record.tokenName);
 
   return (
     <div className="card-base !p-4">
       {/* Top row */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          {/* Token avatar */}
-          <div className="w-9 h-9 rounded-full bg-accent-light flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-bold text-accent-app">{tokenInitials}</span>
-          </div>
+          {/* Token avatar — real on-chain icon with monogram fallback */}
+          <TokenIcon
+            logoUrl={token?.logoUrl}
+            symbol={record.tokenName}
+            color={token?.logoColor ?? '#4DB8FF'}
+            size={36}
+          />
           <div>
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-bold text-primary-app">{record.tokenName}</p>
@@ -71,7 +76,7 @@ export default function TradeHistoryCard({ record }: Props) {
                 isProfit ? 'text-success-app' : 'text-danger-app'
               }`}
             >
-              {isProfit ? '+' : ''}${Math.abs(record.pnl).toFixed(2)}
+              {isProfit ? '+' : '-'}${Math.abs(record.pnl).toFixed(2)}
             </span>
           </div>
           <p

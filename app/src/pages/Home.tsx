@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTradingStore } from '@/stores/tradingStore';
 import { useChallengeStore } from '@/stores/challengeStore';
@@ -7,8 +7,9 @@ import DrawdownMonitor from '@/components/DrawdownMonitor';
 import PerformanceSummary from '@/components/PerformanceChart';
 import QuickActionButton from '@/components/QuickActionButton';
 import RecentActivity from '@/components/RecentActivity';
+import PayoutModal from '@/components/PayoutModal';
 import {
-  ArrowDownLeft, ArrowUpRight, Clock, HelpCircle,
+  Rocket, Banknote, Clock, LifeBuoy,
   TrendingUp, TrendingDown, Shield, Zap, ChevronRight,
 } from 'lucide-react';
 
@@ -16,11 +17,19 @@ export default function Home() {
   const navigate = useNavigate();
   const { balance, pnl, pnlPercent, startingBalance } = useTradingStore();
   const { activeChallenge } = useChallengeStore();
+  const [payoutOpen, setPayoutOpen] = useState(false);
 
   useEffect(() => {
     const id = setInterval(() => useTradingStore.getState().updatePrices(), 5000);
     return () => clearInterval(id);
   }, []);
+
+  const openSupport = () => {
+    const url = 'https://t.me/tonfunded';
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, '_blank', 'noopener');
+  };
 
   const isProfit = pnl >= 0;
 
@@ -79,7 +88,7 @@ export default function Home() {
                 ? <TrendingUp size={11} style={{ color: '#4ade80' }} />
                 : <TrendingDown size={11} style={{ color: '#f87171' }} />}
               <span className="font-number text-xs font-700" style={{ color: isProfit ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-                {isProfit ? '+' : ''}${Math.abs(pnl).toFixed(2)}
+                {isProfit ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
               </span>
             </div>
             <span className="font-number text-xs font-700" style={{ color: isProfit ? '#4ade80' : '#f87171', fontWeight: 700 }}>
@@ -102,10 +111,10 @@ export default function Home() {
           Quick Actions
         </p>
         <div className="grid grid-cols-4 gap-1">
-          <QuickActionButton icon={ArrowDownLeft} label="Deposit"  onClick={() => {}} />
-          <QuickActionButton icon={ArrowUpRight}  label="Withdraw" onClick={() => {}} />
-          <QuickActionButton icon={Clock}          label="History"  onClick={() => navigate('/trading')} />
-          <QuickActionButton icon={HelpCircle}     label="Support"  onClick={() => {}} />
+          <QuickActionButton icon={Rocket}   label="Get Funded"     accent onClick={() => navigate('/challenges')} />
+          <QuickActionButton icon={Banknote} label="Request Payout" onClick={() => setPayoutOpen(true)} />
+          <QuickActionButton icon={Clock}    label="History"        onClick={() => navigate('/trading')} />
+          <QuickActionButton icon={LifeBuoy} label="Support"        onClick={openSupport} />
         </div>
       </div>
 
@@ -191,6 +200,8 @@ export default function Home() {
 
       {/* ── Recent Activity ─────────────────────────────────────── */}
       <RecentActivity />
+
+      <PayoutModal isOpen={payoutOpen} onClose={() => setPayoutOpen(false)} />
     </div>
   );
 }

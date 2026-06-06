@@ -6,16 +6,17 @@ import {
   ChevronUp,
   Shield,
   Settings2,
-  Target,
   AlertTriangle,
   X,
   CheckCircle2,
   Minus,
 } from 'lucide-react';
 import { useTradingStore } from '@/stores/tradingStore';
+import { getTokenBySymbol } from '@/stores/swapStore';
 import type { Position, RiskCheckResult } from '@/types';
 import SlippageSettingsSheet from './SlippageSettingsSheet';
 import RiskCheckModal from './RiskCheckModal';
+import TokenIcon from './TokenIcon';
 
 interface Props {
   position: Position;
@@ -43,7 +44,7 @@ function LivePnL({ pnl, pnlPercent }: { pnl: number; pnlPercent: number }) {
           color: flash === 'up' ? '#4ade80' : flash === 'down' ? '#f87171' : isProfit ? 'var(--text-success)' : 'var(--text-danger)',
         }}
       >
-        {isProfit ? '+' : ''}${Math.abs(pnl).toFixed(2)}
+        {isProfit ? '+' : '-'}${Math.abs(pnl).toFixed(2)}
       </p>
       <p
         className="font-number text-xs"
@@ -56,7 +57,7 @@ function LivePnL({ pnl, pnlPercent }: { pnl: number; pnlPercent: number }) {
 }
 
 export default function PositionCard({ position }: Props) {
-  const { partialClose, closePosition, setBreakeven, runRiskCheck } = useTradingStore();
+  const { partialClose, closePosition, setBreakeven, clearBreakeven, runRiskCheck } = useTradingStore();
 
   const [expanded, setExpanded] = useState(false);
   const [showSlippage, setShowSlippage] = useState(false);
@@ -114,15 +115,13 @@ export default function PositionCard({ position }: Props) {
             onClick={() => setExpanded((e) => !e)}
           >
             <div className="flex items-center gap-3">
-              {/* Token avatar */}
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--bg-accent-light)' }}
-              >
-                <span className="text-sm font-700 text-accent-app" style={{ fontWeight: 700 }}>
-                  {position.tokenName.slice(0, 2)}
-                </span>
-              </div>
+              {/* Token avatar — real on-chain icon with monogram fallback */}
+              <TokenIcon
+                logoUrl={getTokenBySymbol(position.tokenName)?.logoUrl}
+                symbol={position.tokenName}
+                color={getTokenBySymbol(position.tokenName)?.logoColor ?? '#4DB8FF'}
+                size={40}
+              />
 
               <div>
                 <div className="flex items-center gap-1.5 mb-0.5">
@@ -183,11 +182,12 @@ export default function PositionCard({ position }: Props) {
               <span>Close 50%</span>
             </button>
 
-            {/* Take Profit */}
+            {/* Take Profit — lock in gains; only active while in profit */}
             <button
-              onClick={() => position.takeProfit ? handleRapidSell(100) : null}
+              onClick={() => { if (isProfit) handleRapidSell(100); }}
+              disabled={!isProfit}
               className="trade-btn trade-btn-tp flex-1"
-              style={!position.takeProfit ? { opacity: 0.5 } : {}}
+              style={!isProfit ? { opacity: 0.45, cursor: 'not-allowed' } : {}}
             >
               <CheckCircle2 size={13} />
               <span>Take Profit</span>
@@ -227,15 +227,18 @@ export default function PositionCard({ position }: Props) {
                 </button>
 
                 <button
-                  onClick={() => canSetBreakeven && setBreakeven(position.id)}
-                  disabled={!canSetBreakeven}
-                  className="flex items-center gap-1.5 flex-1 py-2.5 px-3 rounded-xl transition-all"
+                  onClick={() => {
+                    if (position.breakevenSet) clearBreakeven(position.id);
+                    else if (canSetBreakeven) setBreakeven(position.id);
+                  }}
+                  disabled={!position.breakevenSet && !canSetBreakeven}
+                  className="flex items-center justify-center gap-1.5 flex-1 py-2.5 px-3 rounded-xl transition-all active:scale-95"
                   style={
                     position.breakevenSet
-                      ? { background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', opacity: 0.7 }
+                      ? { background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.28)' }
                       : canSetBreakeven
                         ? { background: 'var(--bg-accent-light)', border: '1px solid var(--border-accent)' }
-                        : { background: 'var(--bg-surface)', border: '1px solid var(--border-default)', opacity: 0.4 }
+                        : { background: 'var(--bg-surface)', border: '1px solid var(--border-default)', opacity: 0.4, cursor: 'not-allowed' }
                   }
                 >
                   <Shield size={13} style={{ color: position.breakevenSet ? '#60a5fa' : canSetBreakeven ? '#4DB8FF' : 'var(--text-tertiary)' }} />
@@ -243,15 +246,8 @@ export default function PositionCard({ position }: Props) {
                     className="text-xs font-700"
                     style={{ fontWeight: 700, color: position.breakevenSet ? '#60a5fa' : canSetBreakeven ? '#4DB8FF' : 'var(--text-tertiary)' }}
                   >
-                    {position.breakevenSet ? 'BE Active' : 'Breakeven'}
+                    {position.breakevenSet ? 'BE Active · Tap to clear' : 'Breakeven'}
                   </span>
-                </button>
-
-                <button
-                  className="flex items-center justify-center w-11 rounded-xl"
-                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
-                >
-                  <Target size={15} className="text-accent-app" />
                 </button>
               </div>
 

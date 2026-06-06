@@ -1,6 +1,7 @@
 import { ArrowRight, ExternalLink } from 'lucide-react';
 import type { SwapHistoryItem } from '@/types';
 import { STONFI_TOKENS } from '@/stores/swapStore';
+import TokenIcon from '@/components/TokenIcon';
 
 interface Props {
   item: SwapHistoryItem;
@@ -38,16 +39,15 @@ function formatAmount(amount: number, symbol: string): string {
 
 function TokenChip({ symbol }: { symbol: string }) {
   const token = STONFI_TOKENS.find((t) => t.symbol === symbol);
-  const color = token?.logoColor ?? '#9ca3af';
-  const initials = token?.logoInitials ?? symbol.slice(0, 2);
   return (
     <div className="flex items-center gap-1.5">
-      <div
-        className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-        style={{ backgroundColor: color }}
-      >
-        {initials}
-      </div>
+      <TokenIcon
+        logoUrl={token?.logoUrl}
+        symbol={symbol}
+        color={token?.logoColor ?? '#9ca3af'}
+        initials={token?.logoInitials ?? symbol.slice(0, 2)}
+        size={20}
+      />
       <span className="text-xs font-semibold text-primary-app">{symbol}</span>
     </div>
   );
