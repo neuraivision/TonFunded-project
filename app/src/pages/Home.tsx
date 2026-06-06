@@ -140,7 +140,7 @@ export default function Home() {
             </div>
             <div className="text-left">
               <p className="text-sm text-white leading-tight" style={{ fontWeight: 700 }}>Start a Challenge</p>
-              <p className="text-[11px] text-blue-300/60 mt-0.5">Get funded from $5K to $100K</p>
+              <p className="text-[11px] text-blue-300/60 mt-0.5">Get funded from $5K to $200K</p>
             </div>
           </div>
           <ChevronRight size={16} style={{ color: 'rgba(77,184,255,0.5)' }} />

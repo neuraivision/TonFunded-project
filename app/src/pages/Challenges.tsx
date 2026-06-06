@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useChallengeStore, CHALLENGE_TIERS } from '@/stores/challengeStore';
 import {
   Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target,
-  ChevronRight, Star, Sprout, Crown, Trophy, type LucideIcon,
+  ChevronRight, Star, Sprout, Crown, Trophy, Gem, type LucideIcon,
 } from 'lucide-react';
 
 // Clean line-icon + accent per tier (no emojis). Selection accent is always
@@ -13,6 +13,7 @@ const TIER_STYLES: Record<string, { color: string; icon: LucideIcon }> = {
   pro:     { color: '#f59e0b', icon: Zap },
   expert:  { color: '#a855f7', icon: Crown },
   elite:   { color: '#ec4899', icon: Trophy },
+  legend:  { color: '#6366f1', icon: Gem },
 };
 
 export default function Challenges() {
@@ -154,7 +155,7 @@ export default function Challenges() {
                 </div>
                 <div className="text-right">
                   <p className="font-number text-xl font-700 text-primary-app leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.03em' }}>
-                    ${tier.fee}
+                    ${tier.fee.toLocaleString()}
                   </p>
                   <p className="text-[10px] text-tertiary">eval fee</p>
                 </div>
@@ -227,7 +228,7 @@ export default function Challenges() {
               style={{ boxShadow: '0 8px 24px rgba(77,184,255,0.35), 0 4px 12px rgba(0,0,0,0.1)' }}
             >
               <Rocket size={18} />
-              Get Funded — {tier?.name} (${tier?.fee})
+              Get Funded — {tier?.name} (${tier?.fee.toLocaleString()})
             </button>
           </div>
         );
