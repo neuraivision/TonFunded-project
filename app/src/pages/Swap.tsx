@@ -112,7 +112,7 @@ function SlippageRow({
               !SLIPPAGE_PRESETS.includes(slippage as (typeof SLIPPAGE_PRESETS)[number])
                 ? 'bg-accent-app text-white'
                 : 'text-secondary active:opacity-70'
-            }`} style={slippage === p && !showCustom ? {} : { background: 'var(--bg-surface)' }}
+            }`} style={!SLIPPAGE_PRESETS.includes(slippage as any) ? {} : { background: 'var(--bg-surface)' }}
           >
             {!SLIPPAGE_PRESETS.includes(slippage as (typeof SLIPPAGE_PRESETS)[number])
               ? `${slippage}%`
