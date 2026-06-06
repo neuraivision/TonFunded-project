@@ -104,7 +104,7 @@ export default function PerformanceSummary() {
       {/* Stats row */}
       <div
         className="grid grid-cols-4 divide-x px-0"
-        style={{ borderTop: '1px solid var(--border-default)', divideColor: 'var(--border-default)' }}
+        style={{ borderTop: '1px solid var(--border-default)' }}
       >
         {[
           { label: 'Win Rate', value: `${winRate}%` },
