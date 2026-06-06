@@ -1,55 +1,18 @@
 import { useState } from 'react';
 import { useChallengeStore, CHALLENGE_TIERS } from '@/stores/challengeStore';
-import { Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target, ChevronRight, Star } from 'lucide-react';
+import {
+  Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target,
+  ChevronRight, Star, Sprout, Crown, Trophy, type LucideIcon,
+} from 'lucide-react';
 
-const TIER_STYLES: Record<string, {
-  gradient: string;
-  border: string;
-  badge: string;
-  badgeText: string;
-  icon: string;
-  glow: string;
-}> = {
-  starter: {
-    gradient: 'linear-gradient(135deg, #e8f5fd 0%, #f0f8ff 100%)',
-    border: 'rgba(77,184,255,0.3)',
-    badge: 'rgba(77,184,255,0.12)',
-    badgeText: '#2aa8f2',
-    icon: '🌱',
-    glow: 'rgba(77,184,255,0.15)',
-  },
-  growth: {
-    gradient: 'linear-gradient(135deg, #f0fdf4 0%, #f6fff9 100%)',
-    border: 'rgba(34,197,94,0.3)',
-    badge: 'rgba(34,197,94,0.1)',
-    badgeText: '#16a34a',
-    icon: '📈',
-    glow: 'rgba(34,197,94,0.12)',
-  },
-  pro: {
-    gradient: 'linear-gradient(135deg, #fffbeb 0%, #fffdf5 100%)',
-    border: 'rgba(245,158,11,0.35)',
-    badge: 'rgba(245,158,11,0.12)',
-    badgeText: '#b45309',
-    icon: '⚡',
-    glow: 'rgba(245,158,11,0.12)',
-  },
-  expert: {
-    gradient: 'linear-gradient(135deg, #faf5ff 0%, #fdf8ff 100%)',
-    border: 'rgba(168,85,247,0.3)',
-    badge: 'rgba(168,85,247,0.1)',
-    badgeText: '#7c3aed',
-    icon: '👑',
-    glow: 'rgba(168,85,247,0.12)',
-  },
-  elite: {
-    gradient: 'linear-gradient(135deg, #fdf2f8 0%, #fff5fb 100%)',
-    border: 'rgba(236,72,153,0.3)',
-    badge: 'rgba(236,72,153,0.1)',
-    badgeText: '#be185d',
-    icon: '🏆',
-    glow: 'rgba(236,72,153,0.12)',
-  },
+// Clean line-icon + accent per tier (no emojis). Selection accent is always
+// TON blue for a disciplined, institutional look.
+const TIER_STYLES: Record<string, { color: string; icon: LucideIcon }> = {
+  starter: { color: '#4DB8FF', icon: Sprout },
+  growth:  { color: '#22c55e', icon: TrendingUp },
+  pro:     { color: '#f59e0b', icon: Zap },
+  expert:  { color: '#a855f7', icon: Crown },
+  elite:   { color: '#ec4899', icon: Trophy },
 };
 
 export default function Challenges() {
@@ -139,30 +102,40 @@ export default function Challenges() {
           const style = TIER_STYLES[tier.id] || TIER_STYLES.starter;
           const isSelected = selectedTierId === tier.id;
 
+          const TierIcon = style.icon;
+
           return (
             <div
               key={tier.id}
               onClick={() => selectTier(tier.id)}
               className="rounded-2xl p-4 cursor-pointer transition-all duration-200"
               style={{
-                background: isSelected ? style.gradient : 'var(--bg-card)',
-                border: `1.5px solid ${isSelected ? style.border : 'var(--border-card)'}`,
+                // Theme-safe: solid card + subtle accent overlay when selected,
+                // so text stays legible in both light and dark mode.
+                background: isSelected
+                  ? `linear-gradient(0deg, rgba(77,184,255,0.10), rgba(77,184,255,0.10)), var(--bg-card)`
+                  : 'var(--bg-card)',
+                border: `1.5px solid ${isSelected ? 'rgba(77,184,255,0.6)' : 'var(--border-card)'}`,
                 boxShadow: isSelected
-                  ? `0 4px 20px ${style.glow}, 0 2px 8px rgba(0,0,0,0.06)`
+                  ? '0 6px 22px rgba(77,184,255,0.18)'
                   : 'var(--shadow-card)',
-                transform: isSelected ? 'scale(1.005)' : 'scale(1)',
               }}
             >
               {/* Top row: badge + price */}
               <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xl">{style.icon}</span>
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: `${style.color}1f`, border: `1px solid ${style.color}40` }}
+                  >
+                    <TierIcon size={17} style={{ color: style.color }} strokeWidth={2} />
+                  </div>
                   <div>
                     <span
                       className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-700"
                       style={{
-                        background: style.badge,
-                        color: style.badgeText,
+                        background: `${style.color}1f`,
+                        color: style.color,
                         fontWeight: 700,
                         letterSpacing: '0.02em',
                         textTransform: 'uppercase',
@@ -189,7 +162,7 @@ export default function Challenges() {
               {/* Rules - compact 2-col grid */}
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
                 {[
-                  { icon: TrendingUp, label: 'Profit Target', value: `${tier.profitTarget}%`, color: style.badgeText },
+                  { icon: TrendingUp, label: 'Profit Target', value: `${tier.profitTarget}%`, color: style.color },
                   { icon: Target, label: 'Daily Loss Max', value: `${tier.maxDailyLoss}%`, color: '#dc2626' },
                   { icon: Shield, label: 'Overall Loss Max', value: `${tier.maxOverallLoss}%`, color: '#dc2626' },
                   { icon: Calendar, label: 'Min Trading Days', value: `${tier.minTradingDays} days`, color: 'var(--text-secondary)' },

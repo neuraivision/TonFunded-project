@@ -25,6 +25,8 @@ import { useTonWallet } from '@/hooks/useTonWallet';
 import { useReferralStore } from '@/stores/referralStore';
 import { useTradingStore } from '@/stores/tradingStore';
 import PayoutModal from '@/components/PayoutModal';
+import LegalFooter from '@/components/LegalFooter';
+import { formatPct } from '@/lib/utils';
 
 function MenuItem({
   icon: Icon,
@@ -215,7 +217,7 @@ export default function Profile() {
         {/* Performance mini stats */}
         <div className="grid grid-cols-3 gap-2 mt-4 relative">
           {[
-            { label: 'P&L', value: `${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(1)}%`, color: profitPct >= 0 ? '#4ade80' : '#f87171', icon: TrendingUp },
+            { label: 'P&L', value: formatPct(profitPct, 1), color: profitPct >= 0 ? '#4ade80' : '#f87171', icon: TrendingUp },
             { label: 'Win Rate', value: `${stats.winRate}%`, color: '#4DB8FF', icon: Trophy },
             { label: 'Best Streak', value: `${stats.maxConsecutiveWins}W`, color: '#fbbf24', icon: Flame },
           ].map((s) => (
@@ -429,9 +431,7 @@ export default function Profile() {
         />
       </div>
 
-      <p className="text-xs text-center text-tertiary pb-2">
-        TonFunded v2.0 · Built on TON Blockchain
-      </p>
+      <LegalFooter />
 
       <PayoutModal isOpen={payoutOpen} onClose={() => setPayoutOpen(false)} />
     </div>

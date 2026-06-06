@@ -1,4 +1,4 @@
-import { AreaChart, Area, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { useTradingStore } from '@/stores/tradingStore';
 import { TrendingUp } from 'lucide-react';
 
@@ -71,15 +71,18 @@ export default function PerformanceSummary() {
       </div>
 
       {/* Chart */}
-      <div className="h-[88px] px-0">
+      <div className="h-[120px] px-0">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 8, right: 4, left: 4, bottom: 0 }}>
             <defs>
               <linearGradient id="perfGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4DB8FF" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="#4DB8FF" stopOpacity={0} />
+                <stop offset="0%" stopColor="#4DB8FF" stopOpacity={0.32} />
+                <stop offset="100%" stopColor="#4DB8FF" stopOpacity={0.02} />
               </linearGradient>
             </defs>
+            {/* Padded domain so the curve uses the full height instead of
+                sitting flat against the top (default domain starts at 0). */}
+            <YAxis hide domain={['dataMin - 120', 'dataMax + 80']} />
             <XAxis
               dataKey="day"
               axisLine={false}
@@ -87,12 +90,12 @@ export default function PerformanceSummary() {
               tick={{ fontSize: 9, fill: 'var(--text-tertiary)' }}
               dy={4}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(77,184,255,0.2)', strokeWidth: 1 }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(77,184,255,0.35)', strokeWidth: 1 }} />
             <Area
               type="monotone"
               dataKey="value"
               stroke="#4DB8FF"
-              strokeWidth={1.8}
+              strokeWidth={2.5}
               fill="url(#perfGradient)"
               dot={false}
               activeDot={{ r: 4, fill: '#4DB8FF', stroke: 'var(--bg-card)', strokeWidth: 2 }}

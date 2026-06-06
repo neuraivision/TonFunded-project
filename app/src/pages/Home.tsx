@@ -8,6 +8,8 @@ import PerformanceSummary from '@/components/PerformanceChart';
 import QuickActionButton from '@/components/QuickActionButton';
 import RecentActivity from '@/components/RecentActivity';
 import PayoutModal from '@/components/PayoutModal';
+import LegalFooter from '@/components/LegalFooter';
+import { formatPct } from '@/lib/utils';
 import {
   Rocket, Banknote, Clock, LifeBuoy,
   TrendingUp, TrendingDown, Shield, Zap, ChevronRight,
@@ -59,7 +61,7 @@ export default function Home() {
             style={{ background: 'rgba(77,184,255,0.12)', border: '1px solid rgba(77,184,255,0.2)' }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: '0 0 4px rgba(74,222,128,0.7)' }} />
-            <span className="text-[9px] font-700 text-blue-300 tracking-widest" style={{ fontWeight: 700 }}>LIVE</span>
+            <span className="text-[9px] font-700 text-blue-300 tracking-widest" style={{ fontWeight: 700 }}>EVALUATION</span>
           </div>
         </div>
 
@@ -92,7 +94,7 @@ export default function Home() {
               </span>
             </div>
             <span className="font-number text-xs font-700" style={{ color: isProfit ? '#4ade80' : '#f87171', fontWeight: 700 }}>
-              {isProfit ? '+' : ''}{pnlPercent.toFixed(2)}%
+              {formatPct(pnlPercent, 2)}
             </span>
           </div>
           <span className="text-[10px] text-white/25">Today's P&L</span>
@@ -149,7 +151,7 @@ export default function Home() {
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: 'Balance', value: `$${(balance / 1000).toFixed(1)}K`, sub: 'Account' },
-          { label: 'Return',  value: `${isProfit ? '+' : ''}${pnlPercent.toFixed(1)}%`, sub: 'P&L', profit: isProfit },
+          { label: 'Return',  value: formatPct(pnlPercent, 1), sub: 'P&L', profit: isProfit },
           { label: 'Phase',   value: activeChallenge ? `P${activeChallenge.phase}` : '—', sub: activeChallenge?.tierName ?? 'Inactive' },
         ].map((s) => (
           <div
@@ -200,6 +202,9 @@ export default function Home() {
 
       {/* ── Recent Activity ─────────────────────────────────────── */}
       <RecentActivity />
+
+      {/* ── Risk disclosure + legal ─────────────────────────────── */}
+      <LegalFooter />
 
       <PayoutModal isOpen={payoutOpen} onClose={() => setPayoutOpen(false)} />
     </div>
