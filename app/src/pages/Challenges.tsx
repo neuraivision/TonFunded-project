@@ -27,7 +27,14 @@ export default function Challenges() {
   };
 
   return (
-    <div className="px-4 pt-4 pb-28 page-enter">
+    <div
+      className="px-4 pt-4 page-enter"
+      style={{
+        paddingBottom: selectedTierId
+          ? 'calc(150px + env(safe-area-inset-bottom, 0px))'
+          : 'calc(80px + env(safe-area-inset-bottom, 0px))',
+      }}
+    >
 
       {/* Header */}
       <div className="mb-5">
@@ -210,7 +217,10 @@ export default function Challenges() {
       {selectedTierId && (() => {
         const tier = CHALLENGE_TIERS.find(t => t.id === selectedTierId);
         return (
-          <div className="fixed bottom-16 left-4 right-4 z-40 max-w-lg mx-auto">
+          <div
+            className="fixed left-4 right-4 z-40 max-w-lg mx-auto"
+            style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' }}
+          >
             <button
               onClick={handlePurchase}
               className="btn-primary !py-4 text-base"

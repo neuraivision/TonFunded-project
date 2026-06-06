@@ -53,7 +53,7 @@ export default function Home() {
 
         {/* Account type */}
         <div className="flex items-center justify-between mb-4">
-          <span className="text-[10px] font-600 text-white/40 uppercase tracking-[0.1em]" style={{ fontWeight: 600 }}>
+          <span className="text-[10px] font-600 text-white/60 uppercase tracking-[0.1em]" style={{ fontWeight: 600 }}>
             {activeChallenge ? `${activeChallenge.tierName} · Phase ${activeChallenge.phase}` : 'Demo Account'}
           </span>
           <div
@@ -69,7 +69,7 @@ export default function Home() {
         <p className="font-number text-[38px] text-white leading-none" style={{ fontWeight: 700, letterSpacing: '-0.04em' }}>
           ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </p>
-        <p className="text-[11px] text-white/30 mt-1.5 font-number">
+        <p className="text-[11px] text-white/55 mt-1.5 font-number">
           of ${startingBalance.toLocaleString()} starting capital
         </p>
 
@@ -97,7 +97,7 @@ export default function Home() {
               {formatPct(pnlPercent, 2)}
             </span>
           </div>
-          <span className="text-[10px] text-white/25">Today's P&L</span>
+          <span className="text-[10px] text-white/50">Today's P&L</span>
         </div>
       </div>
 

@@ -478,14 +478,16 @@ export const useSwapStore = create<SwapState>((set, get) => ({
 
     const newQuote = computeQuote(fromToken, toToken, fromAmountNum, slippage);
 
-    // Format toAmount with appropriate decimal places
+    // Format toAmount with magnitude-aware precision so large outputs stay compact
+    const ask = newQuote.askAmount;
     const toAmountDisplay =
-      toToken.decimals === 0
-        ? newQuote.askAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })
-        : newQuote.askAmount.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 6,
-          });
+      toToken.decimals === 0 || ask >= 1_000_000
+        ? ask.toLocaleString('en-US', { maximumFractionDigits: 0 })
+        : ask >= 1000
+          ? ask.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : ask >= 1
+            ? ask.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+            : ask.toLocaleString('en-US', { maximumFractionDigits: 8 });
 
     set({
       status: 'ready',

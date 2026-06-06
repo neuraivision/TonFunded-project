@@ -149,9 +149,11 @@ function AmountBox({
       ? token.balance.toLocaleString('en-US', { maximumFractionDigits: 0 })
       : token.balance.toLocaleString('en-US', { maximumFractionDigits: 4 });
 
+  // amount may be a comma-formatted display string (receive side) — strip separators before parsing
+  const amountNum = parseFloat(String(amount).replace(/,/g, ''));
   const usdValue =
-    amount && !isNaN(parseFloat(amount))
-      ? (parseFloat(amount) * token.usdPrice).toLocaleString('en-US', {
+    amount && !isNaN(amountNum)
+      ? (amountNum * token.usdPrice).toLocaleString('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
         })
@@ -172,7 +174,7 @@ function AmountBox({
 
       {/* Input + token selector */}
       <div className="flex items-center gap-3">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {isEditable ? (
             <input
               type="number"
@@ -187,14 +189,14 @@ function AmountBox({
               {isLoading ? (
                 <Loader2 size={22} className="text-tertiary animate-spin" />
               ) : amount ? (
-                <span>{amount}</span>
+                <span className="truncate">{amount}</span>
               ) : (
                 <span className="text-tertiary">0.00</span>
               )}
             </div>
           )}
           {usdValue && !isLoading && (
-            <p className="text-xs text-tertiary mt-0.5">≈ ${usdValue}</p>
+            <p className="text-xs text-tertiary mt-0.5 truncate">≈ ${usdValue}</p>
           )}
         </div>
         <TokenSelectorButton token={token} onClick={onPickToken} />
@@ -307,7 +309,6 @@ export default function Swap() {
     swapHistory,
     availableTokens,
     pricesLoading,
-    pricesUpdatedAt,
     refreshMarket,
     setFromToken,
     setToToken,
@@ -384,22 +385,9 @@ export default function Swap() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-1.5">
-          <span
-            className="w-1.5 h-1.5 rounded-full"
-            style={{
-              background: pricesLoading ? '#f59e0b' : '#22c55e',
-              boxShadow: `0 0 5px ${pricesLoading ? 'rgba(245,158,11,0.7)' : 'rgba(34,197,94,0.7)'}`,
-            }}
-          />
-          <p className="text-xs text-secondary">
-            {pricesLoading
-              ? 'Syncing prices…'
-              : pricesUpdatedAt
-                ? 'Live STON.fi prices'
-                : 'Spot trading · TON network'}
-          </p>
-        </div>
+        <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
+          Spot Swap
+        </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowHistory((s) => !s)}
