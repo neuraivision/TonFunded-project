@@ -40,15 +40,32 @@ export interface TradeRow {
 }
 
 /* ------------------------------- 1. Client -------------------------------- */
-const URL = import.meta.env.VITE_SUPABASE_URL as string;
-const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-const FUNCTIONS = `${URL}/functions/v1`;
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || "";
+const SUPABASE_ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() || "";
 
-export const supabase = createClient(URL, ANON, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-});
+/** True only when both env vars are present. When false, the app runs on local
+ *  mock data and all backend calls fail fast (callers fall back gracefully). */
+export const supabaseEnabled = Boolean(SUPABASE_URL && SUPABASE_ANON);
+
+if (!supabaseEnabled && typeof console !== "undefined") {
+  console.warn(
+    "[tonfunded] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY missing — " +
+      "running in offline/mock mode (no backend).",
+  );
+}
+
+const FUNCTIONS = `${SUPABASE_URL}/functions/v1`;
+
+// Use placeholder values when env is missing so createClient never THROWS at
+// import time (a throw here would white-screen the whole app before React mounts).
+export const supabase = createClient(
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_ANON || "placeholder-anon-key",
+  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } },
+);
 
 async function callFn<T = unknown>(name: string, body: unknown): Promise<T> {
+  if (!supabaseEnabled) throw new Error("Backend not configured");
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch(`${FUNCTIONS}/${name}`, {
     method: "POST",
@@ -103,6 +120,7 @@ export async function loginWithTelegram(referralCode?: string) {
 }
 
 export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referralCode?: string }) {
+  if (!supabaseEnabled) throw new Error("Backend not configured");
   const { data: { session } } = await supabase.auth.getSession();
   if (session) return session;
   if (opts?.tonConnectUI?.wallet) {
