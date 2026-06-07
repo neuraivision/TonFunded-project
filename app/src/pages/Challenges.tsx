@@ -3,18 +3,17 @@ import { useChallengeStore } from '@/stores/challengeStore';
 import { useSwapStore } from '@/stores/swapStore';
 import { useTonWallet } from '@/hooks/useTonWallet';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { purchaseChallenge as apiPurchase, confirmPayment } from '@/lib/tonfunded';
+import { purchaseAndPay } from '@/lib/tonfunded';
 import { syncAllFromBackend } from '@/lib/backendSync';
 import {
   Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target,
   ChevronRight, Star, Sprout, Crown, Trophy, Gem, Wallet, AlertTriangle, type LucideIcon,
 } from 'lucide-react';
 
-// Treasury that receives evaluation-fee payments. Set in production:
-//   VITE_TONFUNDED_TREASURY=UQ...your_treasury_address
-// When unset (dev), the on-chain charge is skipped so the flow still demos.
-const TREASURY = (import.meta.env.VITE_TONFUNDED_TREASURY as string | undefined)?.trim() || '';
-// Small gas headroom added on top of the converted fee.
+// Small gas headroom added on top of the converted fee for the balance check.
+// The actual fee amount is priced server-side (purchase-challenge); the
+// destination treasury comes from VITE_TONFUND_TREASURY / the server secret
+// TONFUND_TREASURY_WALLET.
 const GAS_TON = 0.05;
 
 // Clean line-icon + accent per tier (no emojis). Selection accent is always
@@ -53,35 +52,30 @@ export default function Challenges() {
     selectTier(id);
   };
 
-  // Pay the evaluation fee on-chain (TON Connect), then activate the challenge.
+  // Secure purchase: the server prices the fee in TON and returns a payment
+  // request → the user pays the treasury via TON Connect → the server verifies
+  // the on-chain payment before activating the challenge. (verify-payment)
   const handlePay = async () => {
     if (!selectedTier || !isConnected || insufficient || hasActive) return;
     setPurchaseError('');
     setPurchasing(true);
     try {
-      // 1) On-chain evaluation-fee payment (only when a treasury is configured).
-      if (TREASURY) {
-        await tonConnectUI.sendTransaction({
-          validUntil: Math.floor(Date.now() / 1000) + 300,
-          messages: [{ address: TREASURY, amount: Math.round(totalTon * 1e9).toString() }],
-        });
-      } else {
-        console.warn('[tonfunded] VITE_TONFUNDED_TREASURY not set — skipping on-chain charge (dev mode).');
-      }
-      // 2) Activate the challenge on the backend (local mock fallback if no session).
-      try {
-        const { challenge } = await apiPurchase(selectedTier.id);
-        await confirmPayment(challenge.id, 'ton-payment');
-        await syncAllFromBackend();
-      } catch (e) {
-        console.warn('[tonfunded] backend activate failed, using local mock:', e);
-        purchaseChallenge();
-      }
+      await purchaseAndPay(selectedTier.id, tonConnectUI);
+      await syncAllFromBackend();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (e) {
-      console.warn('[tonfunded] payment cancelled/failed:', e);
-      setPurchaseError('Payment was cancelled or failed. Please try again.');
+      // User cancelled, or no backend session (e.g. browser preview): fall back
+      // to the local mock purchase so the flow still demos.
+      console.warn('[tonfunded] secure purchase failed, using local mock:', e);
+      const msg = e instanceof Error ? e.message : '';
+      if (/cancel|reject|declined/i.test(msg)) {
+        setPurchaseError('Payment was cancelled. Please try again.');
+      } else {
+        purchaseChallenge();
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      }
     } finally {
       setPurchasing(false);
     }

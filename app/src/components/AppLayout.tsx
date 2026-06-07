@@ -1,10 +1,18 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
-import { Bell, Wallet } from 'lucide-react';
+import { useState, Suspense } from 'react';
+import { Bell, Wallet, Loader2 } from 'lucide-react';
 import BottomNav from './BottomNav';
 import NotificationPanel from './NotificationPanel';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useTonWallet } from '@/hooks/useTonWallet';
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center" style={{ minHeight: '55vh' }}>
+      <Loader2 size={26} className="animate-spin" style={{ color: '#4DB8FF' }} />
+    </div>
+  );
+}
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'TonFunded',
@@ -110,7 +118,9 @@ export default function AppLayout() {
       </header>
 
       <main className="flex-1 overflow-y-auto scrollbar-hide pb-24">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <BottomNav />

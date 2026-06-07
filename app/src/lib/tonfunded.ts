@@ -8,64 +8,16 @@ import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TonConnectUI, Wallet } from "@tonconnect/ui-react";
 
-/* ------------------------------- Row types -------------------------------- */
-// Supabase is used without generated DB types, so we model the columns we read.
-export interface RiskRulesRow {
-  daily_drawdown_pct?: number;
-  overall_drawdown_pct?: number;
-  funded_amount?: number;
-  [key: string]: unknown;
-}
-export interface ChallengeRow {
-  id?: string;
-  status?: string;
-  current_balance?: number;
-  breach_reason?: string | null;
-  risk_rules?: RiskRulesRow | null;
-  [key: string]: unknown;
-}
-export interface PerformanceRow {
-  challenge_id?: string;
-  balance?: number;
-  daily_drawdown?: number;
-  overall_drawdown?: number;
-  profit_target_progress?: number;
-  [key: string]: unknown;
-}
-export interface TradeRow {
-  id?: string;
-  challenge_id?: string;
-  status?: string;
-  [key: string]: unknown;
-}
-
 /* ------------------------------- 1. Client -------------------------------- */
-const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() || "";
-const SUPABASE_ANON = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim() || "";
+const URL = import.meta.env.VITE_SUPABASE_URL as string;
+const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const FUNCTIONS = `${URL}/functions/v1`;
 
-/** True only when both env vars are present. When false, the app runs on local
- *  mock data and all backend calls fail fast (callers fall back gracefully). */
-export const supabaseEnabled = Boolean(SUPABASE_URL && SUPABASE_ANON);
+export const supabase = createClient(URL, ANON, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+});
 
-if (!supabaseEnabled && typeof console !== "undefined") {
-  console.warn(
-    "[tonfunded] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY missing — " +
-      "running in offline/mock mode (no backend).",
-  );
-}
-
-const FUNCTIONS = `${SUPABASE_URL}/functions/v1`;
-
-// Use placeholder values when env is missing so createClient never THROWS at
-// import time (a throw here would white-screen the whole app before React mounts).
-export const supabase = createClient(
-  SUPABASE_URL || "https://placeholder.supabase.co",
-  SUPABASE_ANON || "placeholder-anon-key",
-  { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } },
-);
-
-async function callFn<T = unknown>(name: string, body: unknown): Promise<T> {
-  if (!supabaseEnabled) throw new Error("Backend not configured");
+async function callFn<T = any>(name: string, body: unknown): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch(`${FUNCTIONS}/${name}`, {
     method: "POST",
@@ -120,7 +72,6 @@ export async function loginWithTelegram(referralCode?: string) {
 }
 
 export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referralCode?: string }) {
-  if (!supabaseEnabled) throw new Error("Backend not configured");
   const { data: { session } } = await supabase.auth.getSession();
   if (session) return session;
   if (opts?.tonConnectUI?.wallet) {
@@ -149,9 +100,40 @@ export const getLeaderboard = (limit = 50) => supabase.rpc("get_leaderboard", { 
 
 /* ----------------------------- 4. Actions --------------------------------- */
 export const purchaseChallenge = (tier: string) =>
-  callFn<{ challenge: { id: string } }>("challenges", { action: "purchase", tier });
+  callFn("challenges", { action: "purchase", tier });
 export const confirmPayment = (challengeId: string, txHash: string) =>
-  callFn<{ ok: boolean }>("challenges", { action: "confirm_payment", challengeId, txHash });
+  callFn("challenges", { action: "confirm_payment", challengeId, txHash });
+
+/* ── Real TON payments ─────────────────────────────────────────────────────
+ * Treasury wallet (fee destination). The authoritative copy lives server-side
+ * (TREASURY_WALLET secret); this VITE var only sets the on-chain destination
+ * the wallet pays to — keep both equal. */
+export const TREASURY = import.meta.env.VITE_TONFUND_TREASURY as string | undefined;
+
+export const startChallengePurchase = (tier: string) =>
+  callFn<any>("purchase-challenge", { tier });
+export const verifyPayment = (transactionId: string) =>
+  callFn<any>("verify-payment", { transactionId });
+
+/** Full purchase flow: create → pay via TON Connect → poll verification.
+ *  `tonConnectUI` is the instance from useTonConnectUI(). */
+export async function purchaseAndPay(tier: string, tonConnectUI: any) {
+  const res = await startChallengePurchase(tier);
+  if (res?.simulated) return res; // dev fallback — challenge already active
+
+  const messages = TREASURY
+    ? [{ address: TREASURY, amount: res.payment.messages[0].amount }]
+    : res.payment.messages;
+
+  await tonConnectUI.sendTransaction({ validUntil: res.payment.validUntil, messages });
+
+  for (let i = 0; i < 12; i++) {              // poll up to ~36s for confirmation
+    await new Promise((r) => setTimeout(r, 3000));
+    const v = await verifyPayment(res.transactionId);
+    if (v?.verified) return v;
+  }
+  throw new Error("Payment sent but not yet confirmed — check your challenge in a moment.");
+}
 export const recordTrade = (t: {
   token: string; side: "buy" | "sell"; amount: number;
   entryPrice: number; exitPrice?: number; challengeId?: string;
@@ -161,9 +143,7 @@ export const requestPayout = (challengeId: string, amount?: number) =>
 
 /* ----------------------- 5. Real-time subscriptions ----------------------- */
 export function subscribeRisk(userId: string, h: {
-  onPerformance?: (row: PerformanceRow) => void;
-  onChallenge?: (row: ChallengeRow) => void;
-  onTrade?: (row: TradeRow) => void;
+  onPerformance?: (row: any) => void; onChallenge?: (row: any) => void; onTrade?: (row: any) => void;
 }) {
   const ch = supabase.channel(`risk:${userId}`)
     .on("postgres_changes",
@@ -193,9 +173,9 @@ export function useSession() {
 
 const WARN = 0.8; // amber at 80% of a limit
 export function useRiskMonitor(userId?: string) {
-  const [challenge, setChallenge] = useState<ChallengeRow | null>(null);
-  const [perf, setPerf] = useState<PerformanceRow | null>(null);
-  const [positions, setPositions] = useState<TradeRow[]>([]);
+  const [challenge, setChallenge] = useState<any>(null);
+  const [perf, setPerf] = useState<any>(null);
+  const [positions, setPositions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const cid = useRef<string | null>(null);
 
@@ -217,9 +197,9 @@ export function useRiskMonitor(userId?: string) {
   useEffect(() => {
     if (!userId) return;
     return subscribeRisk(userId, {
-      onPerformance: (r) => { if (!cid.current || r.challenge_id === cid.current) setPerf(r); },
-      onChallenge:   (r) => { if (!cid.current || r.id === cid.current) setChallenge((c) => ({ ...(c ?? {}), ...r })); },
-      onTrade:       () => { if (cid.current) getOpenPositions(cid.current).then(({ data }) => setPositions((data ?? []) as TradeRow[])); },
+      onPerformance: (r) => (!cid.current || r.challenge_id === cid.current) && setPerf(r),
+      onChallenge:   (r) => (!cid.current || r.id === cid.current) && setChallenge((c: any) => ({ ...c, ...r })),
+      onTrade:       () => cid.current && getOpenPositions(cid.current).then(({ data }) => setPositions(data ?? [])),
     });
   }, [userId]);
 
