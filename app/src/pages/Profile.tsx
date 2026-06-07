@@ -189,7 +189,7 @@ export default function Profile() {
 
           <div className="flex-1 min-w-0">
             <p className="text-lg font-700 text-white leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
-              {activeChallenge ? 'Funded Trader' : 'Trader'}
+              {activeChallenge ? 'Funded Trader' : 'New Trader'}
             </p>
             {isConnected && (
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -198,13 +198,22 @@ export default function Profile() {
               </div>
             )}
             <div className="flex items-center gap-2 mt-2">
-              <span
-                className="inline-flex items-center gap-1 text-[11px] font-700 px-2.5 py-1 rounded-full"
-                style={{ background: 'rgba(77,184,255,0.2)', color: '#4DB8FF', fontWeight: 700 }}
-              >
-                <Star size={10} className="fill-current" />
-                Prop Trader
-              </span>
+              {activeChallenge ? (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-700 px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(77,184,255,0.2)', color: '#4DB8FF', fontWeight: 700 }}
+                >
+                  <Star size={10} className="fill-current" />
+                  Prop Trader
+                </span>
+              ) : (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-700 px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(245,158,11,0.18)', color: '#fbbf24', fontWeight: 700 }}
+                >
+                  Unfunded
+                </span>
+              )}
               {isConnected && (
                 <span
                   className="inline-flex items-center gap-1 text-[11px] font-600 px-2.5 py-1 rounded-full"
@@ -236,13 +245,14 @@ export default function Profile() {
             ))}
           </div>
         ) : (
-          <button
-            onClick={() => navigate('/challenges')}
-            className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 mt-4 relative text-[13px]"
-            style={{ background: 'rgba(77,184,255,0.12)', color: '#4DB8FF', border: '1px solid rgba(77,184,255,0.22)', fontWeight: 600 }}
-          >
-            <Rocket size={14} /> Get funded to start tracking your stats
-          </button>
+          <div className="mt-4 relative">
+            <p className="text-[12.5px] text-blue-200/70 leading-snug mb-3">
+              Get Funded to unlock trading, payouts, the leaderboard &amp; your stats.
+            </p>
+            <button onClick={() => navigate('/challenges')} className="btn-primary w-full !py-3.5 text-base">
+              <Rocket size={18} /> Get Funded
+            </button>
+          </div>
         )}
       </div>
 
@@ -450,17 +460,19 @@ export default function Profile() {
         <MenuItem icon={HelpCircle} label="Help & Rules" iconBg="rgba(59,130,246,0.1)" iconColor="#60a5fa" onClick={() => navigate('/help')} />
       </div>
 
-      {/* Danger zone */}
-      <div className="card-base !p-4">
-        <MenuItem
-          icon={LogOut}
-          label="Disconnect Wallet"
-          iconBg="rgba(239,68,68,0.08)"
-          iconColor="#ef4444"
-          onClick={disconnect}
-          danger
-        />
-      </div>
+      {/* Danger zone — only when a wallet is actually connected */}
+      {isConnected && (
+        <div className="card-base !p-4">
+          <MenuItem
+            icon={LogOut}
+            label="Disconnect Wallet"
+            iconBg="rgba(239,68,68,0.08)"
+            iconColor="#ef4444"
+            onClick={disconnect}
+            danger
+          />
+        </div>
+      )}
 
       <LegalFooter />
 
