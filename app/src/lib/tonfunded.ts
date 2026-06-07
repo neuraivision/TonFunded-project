@@ -8,6 +8,37 @@ import { createClient, type Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { TonConnectUI, Wallet } from "@tonconnect/ui-react";
 
+/* ------------------------------- Row types -------------------------------- */
+// Supabase is used without generated DB types, so we model the columns we read.
+export interface RiskRulesRow {
+  daily_drawdown_pct?: number;
+  overall_drawdown_pct?: number;
+  funded_amount?: number;
+  [key: string]: unknown;
+}
+export interface ChallengeRow {
+  id?: string;
+  status?: string;
+  current_balance?: number;
+  breach_reason?: string | null;
+  risk_rules?: RiskRulesRow | null;
+  [key: string]: unknown;
+}
+export interface PerformanceRow {
+  challenge_id?: string;
+  balance?: number;
+  daily_drawdown?: number;
+  overall_drawdown?: number;
+  profit_target_progress?: number;
+  [key: string]: unknown;
+}
+export interface TradeRow {
+  id?: string;
+  challenge_id?: string;
+  status?: string;
+  [key: string]: unknown;
+}
+
 /* ------------------------------- 1. Client -------------------------------- */
 const URL = import.meta.env.VITE_SUPABASE_URL as string;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -17,7 +48,7 @@ export const supabase = createClient(URL, ANON, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
 });
 
-async function callFn<T = any>(name: string, body: unknown): Promise<T> {
+async function callFn<T = unknown>(name: string, body: unknown): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch(`${FUNCTIONS}/${name}`, {
     method: "POST",
@@ -100,9 +131,9 @@ export const getLeaderboard = (limit = 50) => supabase.rpc("get_leaderboard", { 
 
 /* ----------------------------- 4. Actions --------------------------------- */
 export const purchaseChallenge = (tier: string) =>
-  callFn("challenges", { action: "purchase", tier });
+  callFn<{ challenge: { id: string } }>("challenges", { action: "purchase", tier });
 export const confirmPayment = (challengeId: string, txHash: string) =>
-  callFn("challenges", { action: "confirm_payment", challengeId, txHash });
+  callFn<{ ok: boolean }>("challenges", { action: "confirm_payment", challengeId, txHash });
 export const recordTrade = (t: {
   token: string; side: "buy" | "sell"; amount: number;
   entryPrice: number; exitPrice?: number; challengeId?: string;
@@ -112,7 +143,9 @@ export const requestPayout = (challengeId: string, amount?: number) =>
 
 /* ----------------------- 5. Real-time subscriptions ----------------------- */
 export function subscribeRisk(userId: string, h: {
-  onPerformance?: (row: any) => void; onChallenge?: (row: any) => void; onTrade?: (row: any) => void;
+  onPerformance?: (row: PerformanceRow) => void;
+  onChallenge?: (row: ChallengeRow) => void;
+  onTrade?: (row: TradeRow) => void;
 }) {
   const ch = supabase.channel(`risk:${userId}`)
     .on("postgres_changes",
@@ -142,9 +175,9 @@ export function useSession() {
 
 const WARN = 0.8; // amber at 80% of a limit
 export function useRiskMonitor(userId?: string) {
-  const [challenge, setChallenge] = useState<any>(null);
-  const [perf, setPerf] = useState<any>(null);
-  const [positions, setPositions] = useState<any[]>([]);
+  const [challenge, setChallenge] = useState<ChallengeRow | null>(null);
+  const [perf, setPerf] = useState<PerformanceRow | null>(null);
+  const [positions, setPositions] = useState<TradeRow[]>([]);
   const [loading, setLoading] = useState(true);
   const cid = useRef<string | null>(null);
 
@@ -166,9 +199,9 @@ export function useRiskMonitor(userId?: string) {
   useEffect(() => {
     if (!userId) return;
     return subscribeRisk(userId, {
-      onPerformance: (r) => (!cid.current || r.challenge_id === cid.current) && setPerf(r),
-      onChallenge:   (r) => (!cid.current || r.id === cid.current) && setChallenge((c: any) => ({ ...c, ...r })),
-      onTrade:       () => cid.current && getOpenPositions(cid.current).then(({ data }) => setPositions(data ?? [])),
+      onPerformance: (r) => { if (!cid.current || r.challenge_id === cid.current) setPerf(r); },
+      onChallenge:   (r) => { if (!cid.current || r.id === cid.current) setChallenge((c) => ({ ...(c ?? {}), ...r })); },
+      onTrade:       () => { if (cid.current) getOpenPositions(cid.current).then(({ data }) => setPositions((data ?? []) as TradeRow[])); },
     });
   }, [userId]);
 
