@@ -20,10 +20,12 @@ import {
   Gift,
   Star,
   ArrowUpRight,
+  Rocket,
 } from 'lucide-react';
 import { useTonWallet } from '@/hooks/useTonWallet';
 import { useReferralStore } from '@/stores/referralStore';
 import { useTradingStore } from '@/stores/tradingStore';
+import { useChallengeStore } from '@/stores/challengeStore';
 import PayoutModal from '@/components/PayoutModal';
 import LegalFooter from '@/components/LegalFooter';
 import { formatPct } from '@/lib/utils';
@@ -127,6 +129,7 @@ export default function Profile() {
   const { truncatedAddress, isConnected, connect, disconnect } = useTonWallet();
   const { info, linkCopied, copyReferralLink } = useReferralStore();
   const { stats, profitTarget, balance, startingBalance } = useTradingStore();
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
 
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(true);
@@ -186,7 +189,7 @@ export default function Profile() {
 
           <div className="flex-1 min-w-0">
             <p className="text-lg font-700 text-white leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
-              Funded Trader
+              {activeChallenge ? 'Funded Trader' : 'Trader'}
             </p>
             {isConnected && (
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -214,48 +217,60 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Performance mini stats */}
-        <div className="grid grid-cols-3 gap-2 mt-4 relative">
-          {[
-            { label: 'P&L', value: formatPct(profitPct, 1), color: profitPct >= 0 ? '#4ade80' : '#f87171', icon: TrendingUp },
-            { label: 'Win Rate', value: `${stats.winRate}%`, color: '#4DB8FF', icon: Trophy },
-            { label: 'Best Streak', value: `${stats.maxConsecutiveWins}W`, color: '#fbbf24', icon: Flame },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="flex flex-col items-center gap-1 rounded-xl py-2.5"
-              style={{ background: 'rgba(255,255,255,0.06)' }}
-            >
-              <p className="font-number text-base font-700 leading-none" style={{ color: s.color, fontWeight: 700 }}>{s.value}</p>
-              <p className="text-[10px] text-blue-200/60">{s.label}</p>
-            </div>
-          ))}
-        </div>
+        {/* Performance mini stats — only once funded */}
+        {activeChallenge ? (
+          <div className="grid grid-cols-3 gap-2 mt-4 relative">
+            {[
+              { label: 'P&L', value: formatPct(profitPct, 1), color: profitPct >= 0 ? '#4ade80' : '#f87171', icon: TrendingUp },
+              { label: 'Win Rate', value: `${stats.winRate}%`, color: '#4DB8FF', icon: Trophy },
+              { label: 'Best Streak', value: `${stats.maxConsecutiveWins}W`, color: '#fbbf24', icon: Flame },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="flex flex-col items-center gap-1 rounded-xl py-2.5"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                <p className="font-number text-base font-700 leading-none" style={{ color: s.color, fontWeight: 700 }}>{s.value}</p>
+                <p className="text-[10px] text-blue-200/60">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <button
+            onClick={() => navigate('/challenges')}
+            className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 mt-4 relative text-[13px]"
+            style={{ background: 'rgba(77,184,255,0.12)', color: '#4DB8FF', border: '1px solid rgba(77,184,255,0.22)', fontWeight: 600 }}
+          >
+            <Rocket size={14} /> Get funded to start tracking your stats
+          </button>
+        )}
       </div>
 
-      {/* Profit Target Progress */}
-      <div className="card-base !p-4">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700 }}>Profit Target</p>
-          <span className="text-xs font-600 text-accent-app">
-            {profitTarget.percentComplete.toFixed(1)}%
-          </span>
+      {/* Profit Target Progress — only once funded */}
+      {activeChallenge && (
+        <div className="card-base !p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700 }}>Profit Target</p>
+            <span className="text-xs font-600 text-accent-app">
+              {profitTarget.percentComplete.toFixed(1)}%
+            </span>
+          </div>
+          <div className="progress-track">
+            <div
+              className="progress-fill progress-fill-accent"
+              style={{ width: `${Math.min(100, profitTarget.percentComplete)}%` }}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-[11px] text-tertiary font-number">
+              ${profitTarget.current.toFixed(0)} earned
+            </p>
+            <p className="text-[11px] text-tertiary font-number">
+              ${(profitTarget.target - profitTarget.current).toFixed(0)} remaining
+            </p>
+          </div>
         </div>
-        <div className="progress-track">
-          <div
-            className="progress-fill progress-fill-accent"
-            style={{ width: `${Math.min(100, profitTarget.percentComplete)}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-[11px] text-tertiary font-number">
-            ${profitTarget.current.toFixed(0)} earned
-          </p>
-          <p className="text-[11px] text-tertiary font-number">
-            ${(profitTarget.target - profitTarget.current).toFixed(0)} remaining
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Referral System */}
       <div className="card-base !p-4">
@@ -351,14 +366,24 @@ export default function Profile() {
         <p className="text-[11px] font-700 text-tertiary uppercase tracking-widest mb-1" style={{ fontWeight: 700 }}>
           Account
         </p>
-        <MenuItem
-          icon={DollarSign}
-          label="Request Payout"
-          iconBg="rgba(22,163,74,0.1)"
-          iconColor="#16a34a"
-          onClick={() => setPayoutOpen(true)}
-          badge="Available"
-        />
+        {activeChallenge ? (
+          <MenuItem
+            icon={DollarSign}
+            label="Request Payout"
+            iconBg="rgba(22,163,74,0.1)"
+            iconColor="#16a34a"
+            onClick={() => setPayoutOpen(true)}
+            badge="Available"
+          />
+        ) : (
+          <MenuItem
+            icon={Rocket}
+            label="Get Funded"
+            iconBg="rgba(77,184,255,0.1)"
+            iconColor="#4DB8FF"
+            onClick={() => navigate('/challenges')}
+          />
+        )}
         <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
         <MenuItem
           icon={Trophy}

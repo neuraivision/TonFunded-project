@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { useChallengeStore, CHALLENGE_TIERS } from '@/stores/challengeStore';
+import { useChallengeStore } from '@/stores/challengeStore';
+import { purchaseChallenge as apiPurchase, confirmPayment } from '@/lib/tonfunded';
+import { syncAllFromBackend } from '@/lib/backendSync';
 import {
   Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target,
   ChevronRight, Star, Sprout, Crown, Trophy, Gem, type LucideIcon,
@@ -17,14 +19,33 @@ const TIER_STYLES: Record<string, { color: string; icon: LucideIcon }> = {
 };
 
 export default function Challenges() {
-  const { activeChallenge, selectedTierId, selectTier, purchaseChallenge } = useChallengeStore();
+  const { tiers, activeChallenge, selectedTierId, selectTier, purchaseChallenge } = useChallengeStore();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState('');
 
-  const handlePurchase = () => {
+  const handlePurchase = async () => {
     if (!selectedTierId) return;
-    purchaseChallenge();
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    setPurchaseError('');
+    setPurchasing(true);
+    try {
+      // Create the pending challenge on the backend.
+      const { challenge } = await apiPurchase(selectedTierId);
+      // Payment verification is a later phase — activate directly for now.
+      await confirmPayment(challenge.id, 'pending');
+      await syncAllFromBackend();
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (e) {
+      // No backend session (e.g. previewing in a browser) → fall back to the
+      // local mock purchase so the flow still demos.
+      console.warn('[tonfunded] backend purchase failed, using mock:', e);
+      purchaseChallenge();
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   return (
@@ -106,7 +127,7 @@ export default function Challenges() {
 
       {/* Challenge Tiers Grid */}
       <div className="space-y-3">
-        {CHALLENGE_TIERS.map((tier) => {
+        {tiers.map((tier) => {
           const style = TIER_STYLES[tier.id] || TIER_STYLES.starter;
           const isSelected = selectedTierId === tier.id;
 
@@ -216,19 +237,23 @@ export default function Challenges() {
 
       {/* Sticky purchase button */}
       {selectedTierId && (() => {
-        const tier = CHALLENGE_TIERS.find(t => t.id === selectedTierId);
+        const tier = tiers.find(t => t.id === selectedTierId);
         return (
           <div
             className="fixed left-4 right-4 z-40 max-w-lg mx-auto"
             style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' }}
           >
+            {purchaseError && (
+              <p className="text-xs text-red-500 text-center mb-2">{purchaseError}</p>
+            )}
             <button
               onClick={handlePurchase}
+              disabled={purchasing}
               className="btn-primary !py-4 text-base"
-              style={{ boxShadow: '0 8px 24px rgba(77,184,255,0.35), 0 4px 12px rgba(0,0,0,0.1)' }}
+              style={{ boxShadow: '0 8px 24px rgba(77,184,255,0.35), 0 4px 12px rgba(0,0,0,0.1)', opacity: purchasing ? 0.7 : 1 }}
             >
               <Rocket size={18} />
-              Get Funded — {tier?.name} (${tier?.fee.toLocaleString()})
+              {purchasing ? 'Processing…' : `Get Funded — ${tier?.name} ($${tier?.fee.toLocaleString()})`}
             </button>
           </div>
         );

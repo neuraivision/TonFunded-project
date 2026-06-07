@@ -13,6 +13,7 @@ import { formatPct } from '@/lib/utils';
 import {
   Rocket, Banknote, Clock, LifeBuoy,
   TrendingUp, TrendingDown, Shield, Zap, ChevronRight,
+  Check, BarChart3, Wallet, Trophy,
 } from 'lucide-react';
 
 export default function Home() {
@@ -34,6 +35,107 @@ export default function Home() {
   };
 
   const isProfit = pnl >= 0;
+
+  // ── Pre-funded state: NO money shown until the user buys a challenge ──────
+  if (!activeChallenge) {
+    return (
+      <div className="px-4 pt-5 pb-8 space-y-4 page-enter">
+        {/* Hero CTA */}
+        <div
+          className="rounded-2xl px-5 pt-6 pb-6 relative overflow-hidden"
+          style={{ background: 'linear-gradient(150deg, #091828 0%, #0d2138 55%, #081624 100%)' }}
+        >
+          <div className="absolute top-0 right-0 w-52 h-52 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(77,184,255,0.12) 0%, transparent 65%)', transform: 'translate(25%,-25%)' }} />
+          <div className="absolute bottom-0 left-0 w-36 h-36 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(77,184,255,0.07) 0%, transparent 65%)', transform: 'translate(-20%,20%)' }} />
+
+          <div className="relative">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full mb-4"
+              style={{ background: 'rgba(77,184,255,0.12)', border: '1px solid rgba(77,184,255,0.22)' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: '0 0 4px rgba(74,222,128,0.7)' }} />
+              <span className="text-[9.5px] font-700 text-blue-300 tracking-widest" style={{ fontWeight: 700 }}>NOW ONBOARDING</span>
+            </span>
+            <h1 className="text-[26px] leading-[1.12] text-white" style={{ fontWeight: 800, letterSpacing: '-0.03em' }}>
+              Get funded to trade<br />on TON Blockchain.
+            </h1>
+            <p className="text-[13px] text-white/55 mt-2.5 leading-relaxed max-w-[310px]">
+              Pass a one-phase evaluation, trade up to $200K of our capital, and keep up to 80% of your profits.
+            </p>
+            <button onClick={() => navigate('/challenges')} className="btn-primary w-full mt-5">
+              <Rocket size={18} /> Get Funded
+            </button>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 text-[11px] text-white/55">
+              <span className="flex items-center gap-1.5"><Check size={13} style={{ color: '#4DB8FF' }} /> No deposit to trade</span>
+              <span className="flex items-center gap-1.5"><Check size={13} style={{ color: '#4DB8FF' }} /> 80% profit split</span>
+              <span className="flex items-center gap-1.5"><Check size={13} style={{ color: '#4DB8FF' }} /> Instant payouts</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Wallet */}
+        <WalletCard />
+
+        {/* How it works */}
+        <div className="rounded-2xl px-4 py-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}>
+          <p className="text-[10px] font-700 text-tertiary uppercase tracking-[0.1em] mb-3.5" style={{ fontWeight: 700 }}>How it works</p>
+          <div className="space-y-3.5">
+            {[
+              { icon: BarChart3, t: 'Pass the evaluation', d: 'Hit a 10% profit target within the risk rules.' },
+              { icon: Rocket, t: 'Get funded', d: 'Unlock a funded account up to $200,000.' },
+              { icon: Wallet, t: 'Get paid', d: 'Withdraw up to 80% of profits to your TON wallet.' },
+            ].map((s, i) => (
+              <div key={s.t} className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--bg-accent-light)', border: '1px solid var(--border-accent)' }}>
+                  <s.icon size={16} className="text-accent-app" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-600 text-primary-app" style={{ fontWeight: 600 }}>{s.t}</p>
+                  <p className="text-[12px] text-tertiary leading-snug">{s.d}</p>
+                </div>
+                <span className="font-number text-[13px] text-tertiary" style={{ fontWeight: 700 }}>0{i + 1}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tiers teaser → Challenges */}
+        <button
+          onClick={() => navigate('/challenges')}
+          className="w-full flex items-center justify-between px-4 py-4 rounded-2xl active:opacity-80 transition-opacity"
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-default)', boxShadow: 'var(--shadow-sm)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(77,184,255,0.1)' }}>
+              <Trophy size={17} style={{ color: '#4DB8FF' }} />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700 }}>Evaluation tiers</p>
+              <p className="text-[11px] text-tertiary mt-0.5">$5K to $200K · from $59</p>
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-tertiary" />
+        </button>
+
+        {/* Platform pillars */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { icon: Shield,     text: 'Risk Managed',     color: '#4DB8FF', bg: 'rgba(77,184,255,0.06)' },
+            { icon: TrendingUp, text: '80% Profit Split', color: '#22c55e', bg: 'rgba(34,197,94,0.06)' },
+            { icon: Zap,        text: 'Instant Payouts',  color: '#f59e0b', bg: 'rgba(245,158,11,0.06)' },
+          ].map((f) => (
+            <div key={f.text} className="rounded-xl py-3 px-2 flex flex-col items-center gap-1.5" style={{ background: f.bg }}>
+              <f.icon size={14} style={{ color: f.color }} strokeWidth={1.8} />
+              <p className="text-[9.5px] text-center leading-tight" style={{ color: f.color, fontWeight: 600 }}>{f.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <LegalFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 pt-5 pb-8 space-y-3 page-enter">

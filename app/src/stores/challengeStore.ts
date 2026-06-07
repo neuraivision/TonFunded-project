@@ -90,30 +90,10 @@ export const CHALLENGE_TIERS: ChallengeTier[] = [
 
 const generateId = () => Math.random().toString(36).substring(2, 10);
 
-const initialChallenge: Challenge = {
-  id: 'ch_1',
-  tierId: 'starter',
-  tierName: 'Starter',
-  accountSize: 5000,
-  phase: 1,
-  status: 'active',
-  progress: {
-    tradingDays: 3,
-    minTradingDays: 5,
-    profitCurrent: 800,
-    profitTarget: 1000,
-    dailyLossCurrent: 200,
-    dailyLossLimit: 500,
-    maxLossCurrent: 400,
-    maxLossLimit: 1000,
-    percentComplete: 65,
-  },
-  startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-};
-
 export const useChallengeStore = create<ChallengeState>((set, get) => ({
   tiers: CHALLENGE_TIERS,
-  activeChallenge: initialChallenge,
+  // No funded account until the user buys a challenge — keeps the dashboard honest.
+  activeChallenge: null,
   selectedTierId: null,
 
   selectTier: (id) => set({ selectedTierId: id }),

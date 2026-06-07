@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { PayoutRecord, PayoutStatus } from '@/types';
+import { requestPayout as apiRequestPayout } from '@/lib/tonfunded';
+import { useChallengeStore } from '@/stores/challengeStore';
 
 interface PayoutState {
   records: PayoutRecord[];
@@ -73,7 +75,21 @@ export const usePayoutStore = create<PayoutState>((set, get) => ({
     }
 
     set({ isSubmitting: true, submitError: '' });
-    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+
+    // Send the real request when there's an active backend challenge; the
+    // server validates the amount against realized profit and the tier's split.
+    const challengeId = useChallengeStore.getState().activeChallenge?.id;
+    if (challengeId) {
+      try {
+        await apiRequestPayout(challengeId, amountRequested);
+      } catch (e) {
+        set({ isSubmitting: false, submitError: (e as Error).message || 'Payout request failed.' });
+        return;
+      }
+    } else {
+      // No backend session (preview/demo) → simulate latency.
+      await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    }
 
     const { traderSplitPct } = get();
     const newRecord: PayoutRecord = {
