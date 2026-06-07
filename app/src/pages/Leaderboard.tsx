@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { RefreshCw, Trophy, TrendingUp, Flame, Medal } from 'lucide-react';
 import { useLeaderboardStore } from '@/stores/leaderboardStore';
+import { useChallengeStore } from '@/stores/challengeStore';
+import GetFundedGate from '@/components/GetFundedGate';
 import type { LeaderboardEntry, LeaderboardPeriod } from '@/types';
 
 function countryFlag(code: string): string {
@@ -119,8 +121,18 @@ function formatRefreshed(ts: string): string {
 
 export default function Leaderboard() {
   const { entries, period, isLoading, lastRefreshed, currentUserRank, setPeriod, refresh } = useLeaderboardStore();
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { if (activeChallenge) refresh(); }, [refresh, activeChallenge]);
+
+  if (!activeChallenge) {
+    return (
+      <GetFundedGate
+        title="Leaderboard is locked"
+        subtitle="See how you rank against other funded traders once you pass a challenge and get funded."
+      />
+    );
+  }
 
   const top3 = entries.filter((e) => e.rank <= 3);
   const rest = entries.filter((e) => e.rank > 3);

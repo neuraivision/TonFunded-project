@@ -10,6 +10,8 @@ import {
   Info,
 } from 'lucide-react';
 import { useSwapStore } from '@/stores/swapStore';
+import { useChallengeStore } from '@/stores/challengeStore';
+import GetFundedGate from '@/components/GetFundedGate';
 import TokenPickerSheet from '@/components/TokenPickerSheet';
 import SwapConfirmSheet from '@/components/SwapConfirmSheet';
 import SwapHistoryCard from '@/components/SwapHistoryCard';
@@ -321,6 +323,7 @@ export default function Swap() {
     clearError,
   } = useSwapStore();
 
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
   const [pickerOpen, setPickerOpen] = useState<'from' | 'to' | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -357,6 +360,16 @@ export default function Swap() {
   const isSuccess = status === 'success';
   const isError = status === 'error';
   const canSwap = isReady && !isConfirming;
+
+  // ── Gate: no trading without a funded account ────────────────────────────────
+  if (!activeChallenge) {
+    return (
+      <GetFundedGate
+        title="Trading is locked"
+        subtitle="Swap and trade real TON markets once you pass a challenge and get funded."
+      />
+    );
+  }
 
   // ── Success state ──────────────────────────────────────────────────────────
   if (isSuccess) {

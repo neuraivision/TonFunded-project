@@ -272,7 +272,8 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Referral System */}
+      {/* Referral System — funded traders only */}
+      {activeChallenge && (
       <div className="card-base !p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -360,6 +361,7 @@ export default function Profile() {
           </div>
         )}
       </div>
+      )}
 
       {/* Account Section */}
       <div className="card-base !p-4">
@@ -385,22 +387,26 @@ export default function Profile() {
           />
         )}
         <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-        <MenuItem
-          icon={Trophy}
-          label="Leaderboard"
-          iconBg="rgba(245,158,11,0.1)"
-          iconColor="#d97706"
-          onClick={() => navigate('/leaderboard')}
-        />
-        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-        <MenuItem
-          icon={FileText}
-          label="Trade History"
-          iconBg="rgba(59,130,246,0.1)"
-          iconColor="#3b82f6"
-          onClick={() => navigate('/trading')}
-        />
-        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+        {activeChallenge && (
+          <>
+            <MenuItem
+              icon={Trophy}
+              label="Leaderboard"
+              iconBg="rgba(245,158,11,0.1)"
+              iconColor="#d97706"
+              onClick={() => navigate('/leaderboard')}
+            />
+            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+            <MenuItem
+              icon={FileText}
+              label="Trade History"
+              iconBg="rgba(59,130,246,0.1)"
+              iconColor="#3b82f6"
+              onClick={() => navigate('/trading')}
+            />
+            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+          </>
+        )}
         <MenuItem
           icon={Wallet}
           label={isConnected ? `Wallet: ${truncatedAddress}` : 'Connect Wallet'}
