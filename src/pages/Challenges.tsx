@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { useChallengeStore } from '@/stores/challengeStore';
-import { purchaseChallenge as apiPurchase, confirmPayment } from '@/lib/tonfunded';
+import { useSwapStore } from '@/stores/swapStore';
+import { useTonWallet } from '@/hooks/useTonWallet';
+import { useTonConnectUI } from '@tonconnect/ui-react';
+import { purchaseAndPay } from '@/lib/tonfunded';
 import { syncAllFromBackend } from '@/lib/backendSync';
 import {
   Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target,
-  ChevronRight, Star, Sprout, Crown, Trophy, Gem, type LucideIcon,
+  ChevronRight, Star, Sprout, Crown, Trophy, Gem, AlertTriangle, type LucideIcon,
 } from 'lucide-react';
+
+// Small gas headroom added on top of the converted fee for the balance check.
+// The actual fee amount is priced server-side (purchase-challenge); the
+// destination treasury comes from VITE_TONFUND_TREASURY / the server secret
+// TONFUND_TREASURY_WALLET.
+const GAS_TON = 0.05;
 
 // Clean line-icon + accent per tier (no emojis). Selection accent is always
 // TON blue for a disciplined, institutional look.
@@ -20,39 +29,73 @@ const TIER_STYLES: Record<string, { color: string; icon: LucideIcon }> = {
 
 export default function Challenges() {
   const { tiers, activeChallenge, selectedTierId, selectTier, purchaseChallenge } = useChallengeStore();
+  const { isConnected, balance, connect } = useTonWallet();
+  const [tonConnectUI] = useTonConnectUI();
+  const tonPrice = useSwapStore((s) => s.availableTokens.find((t) => t.symbol === 'TON')?.usdPrice) || 1.5;
+
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState('');
 
-  const handlePurchase = async () => {
-    if (!selectedTierId) return;
+  const hasActive = !!activeChallenge;
+  const selectedTier = tiers.find((t) => t.id === selectedTierId);
+  const feeUsd = selectedTier?.fee ?? 0;
+  const feeTon = tonPrice > 0 ? feeUsd / tonPrice : 0;
+  const totalTon = feeTon + GAS_TON;
+  const feeTonDisplay = feeTon.toFixed(2);
+  const insufficient = isConnected && balance != null && balance < totalTon;
+
+  // Tap a tier: must connect a wallet first; one active challenge at a time.
+  const onCardClick = (id: string) => {
+    if (hasActive) return;
+    if (!isConnected) { connect(); return; }
+    selectTier(id);
+  };
+
+  // Secure purchase: the server prices the fee in TON and returns a payment
+  // request → the user pays the treasury via TON Connect → the server verifies
+  // the on-chain payment before activating the challenge. (verify-payment)
+  const handlePay = async () => {
+    if (!selectedTier || !isConnected || insufficient || hasActive) return;
     setPurchaseError('');
     setPurchasing(true);
     try {
-      // Create the pending challenge on the backend.
-      const { challenge } = await apiPurchase(selectedTierId);
-      // Payment verification is a later phase — activate directly for now.
-      await confirmPayment(challenge.id, 'pending');
+      await purchaseAndPay(selectedTier.id, tonConnectUI);
       await syncAllFromBackend();
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (e) {
-      // No backend session (e.g. previewing in a browser) → fall back to the
-      // local mock purchase so the flow still demos.
-      console.warn('[tonfunded] backend purchase failed, using mock:', e);
-      purchaseChallenge();
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      // User cancelled, or no backend session (e.g. browser preview): fall back
+      // to the local mock purchase so the flow still demos.
+      console.warn('[tonfunded] secure purchase failed, using local mock:', e);
+      const msg = e instanceof Error ? e.message : '';
+      if (/cancel|reject|declined/i.test(msg)) {
+        setPurchaseError('Payment was cancelled. Please try again.');
+      } else {
+        purchaseChallenge();
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      }
     } finally {
       setPurchasing(false);
     }
   };
 
+  // Top-up flow when the user is short on TON.
+  const openAddTon = () => {
+    const url = 'https://ton.org/buy-toncoin';
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg?.openLink) tg.openLink(url);
+    else window.open(url, '_blank', 'noopener');
+  };
+
+  const showSticky = !!selectedTier && isConnected && !hasActive;
+
   return (
     <div
       className="px-4 pt-4 page-enter"
       style={{
-        paddingBottom: selectedTierId
+        paddingBottom: showSticky
           ? 'calc(150px + env(safe-area-inset-bottom, 0px))'
           : 'calc(80px + env(safe-area-inset-bottom, 0px))',
       }}
@@ -111,6 +154,13 @@ export default function Challenges() {
         </div>
       )}
 
+      {/* One-active-challenge notice */}
+      {hasActive && (
+        <p className="text-[12px] text-tertiary mb-4 px-1">
+          You have an active challenge. You can hold one funded account at a time.
+        </p>
+      )}
+
       {/* Success Toast */}
       {showSuccess && (
         <div className="page-enter fixed top-4 left-4 right-4 z-[100] rounded-2xl p-4 flex items-center gap-3 max-w-lg mx-auto"
@@ -136,8 +186,8 @@ export default function Challenges() {
           return (
             <div
               key={tier.id}
-              onClick={() => selectTier(tier.id)}
-              className="rounded-2xl p-4 cursor-pointer transition-all duration-200"
+              onClick={() => onCardClick(tier.id)}
+              className={`rounded-2xl p-4 transition-all duration-200 ${hasActive ? 'cursor-default' : 'cursor-pointer'}`}
               style={{
                 // Theme-safe: solid card + subtle accent overlay when selected,
                 // so text stays legible in both light and dark mode.
@@ -148,6 +198,7 @@ export default function Challenges() {
                 boxShadow: isSelected
                   ? '0 6px 22px rgba(77,184,255,0.18)'
                   : 'var(--shadow-card)',
+                opacity: hasActive ? 0.55 : 1,
               }}
             >
               {/* Top row: badge + price */}
@@ -212,52 +263,74 @@ export default function Challenges() {
                   <Star size={11} className="text-yellow-400 fill-yellow-400" />
                   <span className="text-[11px] text-secondary">80% profit split</span>
                 </div>
-                <div
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-700 transition-all"
-                  style={
-                    isSelected
-                      ? { background: 'var(--gradient-accent)', color: '#fff', boxShadow: '0 2px 10px rgba(77,184,255,0.3)', fontWeight: 700 }
-                      : { background: 'rgba(77,184,255,0.12)', color: '#4DB8FF', border: '1px solid rgba(77,184,255,0.25)', fontWeight: 700 }
-                  }
-                >
-                  {isSelected ? (
-                    <>
-                      <CheckCircle size={12} />
-                      Selected
-                    </>
-                  ) : (
-                    <>Get Funded <ChevronRight size={11} /></>
-                  )}
-                </div>
+                {!hasActive && (
+                  <div
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-700 transition-all"
+                    style={
+                      isSelected
+                        ? { background: 'var(--gradient-accent)', color: '#fff', boxShadow: '0 2px 10px rgba(77,184,255,0.3)', fontWeight: 700 }
+                        : { background: 'rgba(77,184,255,0.12)', color: '#4DB8FF', border: '1px solid rgba(77,184,255,0.25)', fontWeight: 700 }
+                    }
+                  >
+                    {isSelected ? (
+                      <><CheckCircle size={12} /> Selected</>
+                    ) : (
+                      <>Get Funded <ChevronRight size={11} /></>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Sticky purchase button */}
-      {selectedTierId && (() => {
-        const tier = tiers.find(t => t.id === selectedTierId);
-        return (
-          <div
-            className="fixed left-4 right-4 z-40 max-w-lg mx-auto"
-            style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' }}
-          >
-            {purchaseError && (
-              <p className="text-xs text-red-500 text-center mb-2">{purchaseError}</p>
-            )}
+      {/* Sticky purchase button — only when a wallet is connected and no active challenge */}
+      {showSticky && selectedTier && (
+        <div
+          className="fixed left-4 right-4 z-40 max-w-lg mx-auto"
+          style={{ bottom: 'calc(56px + env(safe-area-inset-bottom, 0px) + 12px)' }}
+        >
+          {purchaseError && (
+            <p className="text-xs text-red-500 text-center mb-2">{purchaseError}</p>
+          )}
+          {insufficient ? (
+            <div
+              className="flex items-center gap-3 rounded-xl px-4 py-3"
+              style={{
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.32)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.28)',
+              }}
+            >
+              <AlertTriangle size={16} className="flex-shrink-0" style={{ color: '#fbbf24' }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-700" style={{ color: '#fbbf24', fontWeight: 700 }}>Insufficient TON</p>
+                <p className="text-[11px] text-secondary leading-tight">~{totalTon.toFixed(2)} TON needed for this challenge</p>
+              </div>
+              <button
+                onClick={openAddTon}
+                className="flex-shrink-0 text-[12px] px-3 py-1.5 rounded-lg active:opacity-80 transition-opacity"
+                style={{ background: '#fbbf24', color: '#1a1206', fontWeight: 700 }}
+              >
+                Add TON
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={handlePurchase}
+              onClick={handlePay}
               disabled={purchasing}
               className="btn-primary !py-4 text-base"
               style={{ boxShadow: '0 8px 24px rgba(77,184,255,0.35), 0 4px 12px rgba(0,0,0,0.1)', opacity: purchasing ? 0.7 : 1 }}
             >
               <Rocket size={18} />
-              {purchasing ? 'Processing…' : `Get Funded — ${tier?.name} ($${tier?.fee.toLocaleString()})`}
+              {purchasing ? 'Processing payment…' : `Get Funded · ${selectedTier.name} (~${feeTonDisplay} TON)`}
             </button>
-          </div>
-        );
-      })()}
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { X, Bell, CheckCheck, AlertTriangle, TrendingUp, Trophy, DollarSign, Users, Info, Zap } from 'lucide-react';
+import { X, Bell, CheckCheck, AlertTriangle, TrendingUp, Trophy, DollarSign, Users, Info, Zap, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useChallengeStore } from '@/stores/challengeStore';
 import type { NotificationType } from '@/types';
 
 interface Props {
@@ -45,6 +46,11 @@ function formatTimeAgo(timestamp: string): string {
 export default function NotificationPanel({ isOpen, onClose }: Props) {
   const navigate = useNavigate();
   const { notifications, unreadCount, markRead, markAllRead, dismiss } = useNotificationStore();
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
+
+  // No funded account → no account alerts. Keep it honest with onboarding only.
+  const items = activeChallenge ? notifications : [];
+  const unread = activeChallenge ? unreadCount : 0;
 
   if (!isOpen) return null;
 
@@ -79,17 +85,17 @@ export default function NotificationPanel({ isOpen, onClose }: Props) {
           <div className="flex items-center gap-2">
             <Bell size={17} className="text-primary-app" />
             <h2 className="text-base font-700 text-primary-app" style={{ fontWeight: 700 }}>Notifications</h2>
-            {unreadCount > 0 && (
+            {unread > 0 && (
               <span
                 className="text-white text-[10px] font-700 px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
                 style={{ background: '#ef4444', fontWeight: 700 }}
               >
-                {unreadCount}
+                {unread}
               </span>
             )}
           </div>
           <div className="flex items-center gap-3">
-            {unreadCount > 0 && (
+            {unread > 0 && (
               <button
                 onClick={markAllRead}
                 className="flex items-center gap-1 text-xs font-600 text-accent-app active:opacity-70"
@@ -111,19 +117,36 @@ export default function NotificationPanel({ isOpen, onClose }: Props) {
 
         {/* List */}
         <div className="overflow-y-auto flex-1 scrollbar-hide">
-          {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14">
+          {items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center px-6 py-14">
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                style={{ background: 'var(--bg-surface)' }}
+                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-3"
+                style={{ background: activeChallenge ? 'var(--bg-surface)' : 'var(--bg-accent-light)', border: activeChallenge ? 'none' : '1px solid var(--border-accent)' }}
               >
-                <Bell size={22} className="text-tertiary" />
+                <Bell size={24} className={activeChallenge ? 'text-tertiary' : 'text-accent-app'} />
               </div>
-              <p className="text-sm font-500 text-secondary">No notifications</p>
-              <p className="text-xs text-tertiary mt-1">You're all caught up</p>
+              {activeChallenge ? (
+                <>
+                  <p className="text-sm font-500 text-secondary">No notifications</p>
+                  <p className="text-xs text-tertiary mt-1">You're all caught up</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-600 text-primary-app" style={{ fontWeight: 600 }}>No alerts yet</p>
+                  <p className="text-xs text-tertiary mt-1.5 max-w-[260px] leading-relaxed">
+                    Get funded to start receiving account alerts — drawdown warnings, profit targets, payouts and more.
+                  </p>
+                  <button
+                    onClick={() => { navigate('/challenges'); onClose(); }}
+                    className="btn-primary mt-5 !py-2.5 !px-5 !text-[14px]"
+                  >
+                    <Rocket size={15} /> Get Funded
+                  </button>
+                </>
+              )}
             </div>
           ) : (
-            notifications.map((notif) => {
+            items.map((notif) => {
               const { icon: Icon, iconBg, iconColor } = iconForType(notif.type);
               return (
                 <div

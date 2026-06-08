@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle, X, Filter, BarChart2, Zap } from 'lucide-react';
 import { useTradingStore } from '@/stores/tradingStore';
+import { useChallengeStore } from '@/stores/challengeStore';
 import PositionCard from '@/components/PositionCard';
 import TradeHistoryCard from '@/components/TradeHistoryCard';
 import PerformanceAnalytics from '@/components/PerformanceAnalytics';
 import DrawdownMonitor from '@/components/DrawdownMonitor';
+import GetFundedGate from '@/components/GetFundedGate';
 
 type Tab = 'positions' | 'history' | 'analytics';
 type HistoryFilter = 'all' | 'wins' | 'losses';
@@ -21,15 +23,27 @@ export default function Trading() {
     updatePrices,
   } = useTradingStore();
 
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
   const [activeTab, setActiveTab] = useState<Tab>('positions');
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all');
 
   useEffect(() => {
+    if (!activeChallenge) return;
     const interval = setInterval(updatePrices, 5000);
     return () => clearInterval(interval);
-  }, [updatePrices]);
+  }, [updatePrices, activeChallenge]);
 
   const isProfit = pnl >= 0;
+
+  // No funded account → no positions/P&L to show yet.
+  if (!activeChallenge) {
+    return (
+      <GetFundedGate
+        title="No funded account yet"
+        subtitle="Your positions, P&L, and trade history appear here once you pass a challenge and get funded."
+      />
+    );
+  }
 
   const filteredRecords = tradeRecords.filter((r) => {
     if (historyFilter === 'wins') return r.pnl > 0;

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 function TelegramThemeSync() {
@@ -58,11 +59,13 @@ const manifestUrl =
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
-      <TonConnectUIProvider manifestUrl={manifestUrl}>
-        <TelegramThemeSync />
-        <App />
-      </TonConnectUIProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <TonConnectUIProvider manifestUrl={manifestUrl}>
+          <TelegramThemeSync />
+          <App />
+        </TonConnectUIProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   </StrictMode>
 );

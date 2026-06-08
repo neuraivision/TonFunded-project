@@ -1,15 +1,19 @@
-import { useEffect } from 'react';
+import { useEffect, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import AppLayout from '@/components/AppLayout';
-import Home from '@/pages/Home';
-import Challenges from '@/pages/Challenges';
-import Trading from '@/pages/Trading';
-import Swap from '@/pages/Swap';
-import Leaderboard from '@/pages/Leaderboard';
-import Profile from '@/pages/Profile';
 import { ensureSession } from '@/lib/tonfunded';
 import { syncAllFromBackend, startRealtime } from '@/lib/backendSync';
+
+// Lazy-load each page so the first paint only ships the shell + the current
+// route's chunk (much faster first load on mobile/LTE).
+const Home = lazy(() => import('@/pages/Home'));
+const Challenges = lazy(() => import('@/pages/Challenges'));
+const Trading = lazy(() => import('@/pages/Trading'));
+const Swap = lazy(() => import('@/pages/Swap'));
+const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
+const Profile = lazy(() => import('@/pages/Profile'));
+const Admin = lazy(() => import('@/pages/Admin'));
 
 export default function App() {
   const [tonConnectUI] = useTonConnectUI();
@@ -40,6 +44,7 @@ export default function App() {
         <Route path="/swap" element={<Swap />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/admin" element={<Admin />} />
       </Route>
     </Routes>
   );

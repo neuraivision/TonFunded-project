@@ -1,9 +1,19 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
-import { Bell } from 'lucide-react';
+import { useState, Suspense } from 'react';
+import { Bell, Wallet, Loader2 } from 'lucide-react';
 import BottomNav from './BottomNav';
 import NotificationPanel from './NotificationPanel';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useChallengeStore } from '@/stores/challengeStore';
+import { useTonWallet } from '@/hooks/useTonWallet';
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center" style={{ minHeight: '55vh' }}>
+      <Loader2 size={26} className="animate-spin" style={{ color: '#4DB8FF' }} />
+    </div>
+  );
+}
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'TonFunded',
@@ -18,6 +28,10 @@ export default function AppLayout() {
   const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
   const { unreadCount } = useNotificationStore();
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
+  const { isConnected, truncatedAddress, connect } = useTonWallet();
+  // No funded account → no fake unread alerts on the bell.
+  const badge = activeChallenge ? unreadCount : 0;
   const title = PAGE_TITLES[location.pathname] ?? 'TonFunded';
   const isHome = location.pathname === '/';
 
@@ -58,36 +72,59 @@ export default function AppLayout() {
           </div>
         </div>
 
-        {/* Right: bell */}
-        <button
-          onClick={() => setNotifOpen(true)}
-          className="relative flex items-center justify-center w-8 h-8 rounded-xl active:opacity-60 transition-opacity"
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
-          }}
-        >
-          <Bell size={15} className="text-secondary" strokeWidth={1.8} />
-          {unreadCount > 0 && (
-            <span
-              className="absolute flex items-center justify-center text-white"
-              style={{
-                top: '-4px', right: '-4px',
-                minWidth: '15px', height: '15px',
-                fontSize: '8px', fontWeight: 700,
-                padding: '0 3px', borderRadius: '8px',
-                background: '#ef4444',
-                boxShadow: '0 0 0 2px var(--bg-card)',
-              }}
+        {/* Right: wallet status + bell */}
+        <div className="flex items-center gap-2">
+          {isConnected ? (
+            <div
+              className="flex items-center gap-1.5 px-2.5 h-8 rounded-xl"
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
             >
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" style={{ boxShadow: '0 0 4px rgba(74,222,128,0.7)' }} />
+              <span className="font-mono text-[11px] text-secondary">{truncatedAddress}</span>
+            </div>
+          ) : (
+            <button
+              onClick={connect}
+              className="flex items-center gap-1.5 px-2.5 h-8 rounded-xl active:opacity-70 transition-opacity"
+              style={{ background: 'rgba(77,184,255,0.12)', border: '1px solid rgba(77,184,255,0.25)' }}
+            >
+              <Wallet size={13} style={{ color: '#4DB8FF' }} />
+              <span className="text-[11px]" style={{ color: '#4DB8FF', fontWeight: 700 }}>Connect</span>
+            </button>
           )}
-        </button>
+
+          <button
+            onClick={() => setNotifOpen(true)}
+            className="relative flex items-center justify-center w-8 h-8 rounded-xl active:opacity-60 transition-opacity"
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-default)',
+            }}
+          >
+            <Bell size={15} className="text-secondary" strokeWidth={1.8} />
+            {badge > 0 && (
+              <span
+                className="absolute flex items-center justify-center text-white"
+                style={{
+                  top: '-4px', right: '-4px',
+                  minWidth: '15px', height: '15px',
+                  fontSize: '8px', fontWeight: 700,
+                  padding: '0 3px', borderRadius: '8px',
+                  background: '#ef4444',
+                  boxShadow: '0 0 0 2px var(--bg-card)',
+                }}
+              >
+                {badge > 9 ? '9+' : badge}
+              </span>
+            )}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-y-auto scrollbar-hide pb-24">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <BottomNav />

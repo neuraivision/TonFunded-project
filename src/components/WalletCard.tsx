@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wallet, ChevronRight, Copy, Check, ExternalLink, Power, Loader2 } from 'lucide-react';
+import { Wallet, Copy, Check, ExternalLink, Power, Loader2 } from 'lucide-react';
 import { useTonWallet } from '@/hooks/useTonWallet';
 import { useSwapStore } from '@/stores/swapStore';
 import TokenIcon from '@/components/TokenIcon';
@@ -13,7 +13,6 @@ export default function WalletCard() {
     balance,
     balanceLoading,
     explorerUrl,
-    connect,
     disconnect,
   } = useTonWallet();
 
@@ -31,41 +30,9 @@ export default function WalletCard() {
     }
   };
 
-  // ── Disconnected ──────────────────────────────────────────────────────────
-  if (!isConnected) {
-    return (
-      <button
-        onClick={connect}
-        className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl active:opacity-80 transition-opacity"
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-default)',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
-          >
-            <Wallet size={17} className="text-tertiary" strokeWidth={1.6} />
-          </div>
-          <div className="text-left">
-            <p className="text-sm font-600 text-primary-app" style={{ fontWeight: 600 }}>
-              Connect Wallet
-            </p>
-            <p className="text-xs text-tertiary mt-0.5">Link your TON wallet</p>
-          </div>
-        </div>
-        <div
-          className="flex items-center gap-1 text-xs font-600 px-3 py-1.5 rounded-full"
-          style={{ background: 'rgba(77,184,255,0.1)', color: '#4DB8FF', fontWeight: 600 }}
-        >
-          Connect <ChevronRight size={12} />
-        </div>
-      </button>
-    );
-  }
+  // Connect is handled by the single global wallet chip in the header — when
+  // disconnected, this card renders nothing to avoid a duplicate Connect button.
+  if (!isConnected) return null;
 
   // ── Connected ─────────────────────────────────────────────────────────────
   const usdValue = balance != null ? balance * tonPrice : null;

@@ -103,12 +103,88 @@ export const purchaseChallenge = (tier: string) =>
   callFn("challenges", { action: "purchase", tier });
 export const confirmPayment = (challengeId: string, txHash: string) =>
   callFn("challenges", { action: "confirm_payment", challengeId, txHash });
+
+/* ── Real TON payments ─────────────────────────────────────────────────────
+ * Treasury wallet (fee destination). The authoritative copy lives server-side
+ * (TREASURY_WALLET secret); this VITE var only sets the on-chain destination
+ * the wallet pays to — keep both equal. */
+export const TREASURY = import.meta.env.VITE_TONFUND_TREASURY as string | undefined;
+
+export const startChallengePurchase = (tier: string) =>
+  callFn<any>("purchase-challenge", { tier });
+export const verifyPayment = (transactionId: string) =>
+  callFn<any>("verify-payment", { transactionId });
+
+/** Full purchase flow: create → pay via TON Connect → poll verification.
+ *  `tonConnectUI` is the instance from useTonConnectUI(). */
+export async function purchaseAndPay(tier: string, tonConnectUI: any) {
+  // Bind the paying wallet to this account so verify-payment can match the
+  // on-chain payer (works even when the user logged in via Telegram). RLS lets
+  // a user update only their own ton_address.
+  const wallet = tonConnectUI?.account?.address as string | undefined;
+  if (wallet) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from("users").update({ ton_address: wallet }).eq("id", session.user.id);
+    }
+  }
+
+  const res = await startChallengePurchase(tier);
+  if (res?.simulated) return res; // dev fallback — challenge already active
+
+  const messages = TREASURY
+    ? [{ address: TREASURY, amount: res.payment.messages[0].amount }]
+    : res.payment.messages;
+
+  await tonConnectUI.sendTransaction({ validUntil: res.payment.validUntil, messages });
+
+  for (let i = 0; i < 12; i++) {              // poll up to ~36s for confirmation
+    await new Promise((r) => setTimeout(r, 3000));
+    const v = await verifyPayment(res.transactionId);
+    if (v?.verified) return v;
+  }
+  throw new Error("Payment sent but not yet confirmed — check your challenge in a moment.");
+}
 export const recordTrade = (t: {
   token: string; side: "buy" | "sell"; amount: number;
   entryPrice: number; exitPrice?: number; challengeId?: string;
 }) => callFn("trades", t);
 export const requestPayout = (challengeId: string, amount?: number) =>
   callFn("payouts", { action: "request", challengeId, amount });
+
+/* ── Admin ──────────────────────────────────────────────────────────────────
+ * Reads rely on RLS: an admin (users.role='admin') can read all rows; a
+ * non-admin only ever sees their own, so there is no data leak even if the page
+ * is opened directly. */
+export async function getMyRole(): Promise<string | null> {
+  const { data } = await supabase.from("users").select("role").maybeSingle();
+  return data?.role ?? null;
+}
+
+export async function getAdminData() {
+  const [usersCount, verified, active, recentTx, fundedRows] = await Promise.all([
+    supabase.from("users").select("id", { count: "exact", head: true }),
+    supabase.from("transactions").select("amount_usd").eq("status", "verified"),
+    supabase.from("challenges")
+      .select("id,tier,status,starting_balance,current_balance,created_at,user_id,users(username,ton_address)")
+      .eq("status", "active").order("created_at", { ascending: false }),
+    supabase.from("transactions")
+      .select("id,created_at,status,tier,amount_usd,amount_ton,tx_hash,user_id,users(username,ton_address)")
+      .order("created_at", { ascending: false }).limit(25),
+    supabase.from("challenges").select("user_id,status")
+      .in("status", ["active", "passed", "funded", "completed"]),
+  ]);
+  const totalRevenue = (verified.data ?? []).reduce((s, r: any) => s + Number(r.amount_usd), 0);
+  const fundedTraders = new Set((fundedRows.data ?? []).map((r: any) => r.user_id)).size;
+  return {
+    totalUsers: usersCount.count ?? 0,
+    fundedTraders,
+    activeCount: (active.data ?? []).length,
+    totalRevenue,
+    activeChallenges: active.data ?? [],
+    transactions: recentTx.data ?? [],
+  };
+}
 
 /* ----------------------- 5. Real-time subscriptions ----------------------- */
 export function subscribeRisk(userId: string, h: {
