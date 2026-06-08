@@ -12,6 +12,7 @@ import {
   FileText,
   Bell,
   LogOut,
+  Wallet,
   TrendingUp,
   Flame,
   Camera,
@@ -19,12 +20,10 @@ import {
   Gift,
   Star,
   ArrowUpRight,
-  Rocket,
 } from 'lucide-react';
 import { useTonWallet } from '@/hooks/useTonWallet';
 import { useReferralStore } from '@/stores/referralStore';
 import { useTradingStore } from '@/stores/tradingStore';
-import { useChallengeStore } from '@/stores/challengeStore';
 import PayoutModal from '@/components/PayoutModal';
 import LegalFooter from '@/components/LegalFooter';
 import { formatPct } from '@/lib/utils';
@@ -125,10 +124,9 @@ function ReferralFriendRow({
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { truncatedAddress, isConnected, disconnect } = useTonWallet();
+  const { truncatedAddress, isConnected, connect, disconnect } = useTonWallet();
   const { info, linkCopied, copyReferralLink } = useReferralStore();
   const { stats, profitTarget, balance, startingBalance } = useTradingStore();
-  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
 
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(true);
@@ -188,7 +186,7 @@ export default function Profile() {
 
           <div className="flex-1 min-w-0">
             <p className="text-lg font-700 text-white leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
-              {activeChallenge ? 'Funded Trader' : 'New Trader'}
+              Funded Trader
             </p>
             {isConnected && (
               <div className="flex items-center gap-1.5 mt-0.5">
@@ -197,22 +195,13 @@ export default function Profile() {
               </div>
             )}
             <div className="flex items-center gap-2 mt-2">
-              {activeChallenge ? (
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] font-700 px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(77,184,255,0.2)', color: '#4DB8FF', fontWeight: 700 }}
-                >
-                  <Star size={10} className="fill-current" />
-                  Prop Trader
-                </span>
-              ) : (
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] font-700 px-2.5 py-1 rounded-full"
-                  style={{ background: 'rgba(245,158,11,0.18)', color: '#fbbf24', fontWeight: 700 }}
-                >
-                  Unfunded
-                </span>
-              )}
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-700 px-2.5 py-1 rounded-full"
+                style={{ background: 'rgba(77,184,255,0.2)', color: '#4DB8FF', fontWeight: 700 }}
+              >
+                <Star size={10} className="fill-current" />
+                Prop Trader
+              </span>
               {isConnected && (
                 <span
                   className="inline-flex items-center gap-1 text-[11px] font-600 px-2.5 py-1 rounded-full"
@@ -225,64 +214,50 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Performance mini stats — only once funded */}
-        {activeChallenge ? (
-          <div className="grid grid-cols-3 gap-2 mt-4 relative">
-            {[
-              { label: 'P&L', value: formatPct(profitPct, 1), color: profitPct >= 0 ? '#4ade80' : '#f87171', icon: TrendingUp },
-              { label: 'Win Rate', value: `${stats.winRate}%`, color: '#4DB8FF', icon: Trophy },
-              { label: 'Best Streak', value: `${stats.maxConsecutiveWins}W`, color: '#fbbf24', icon: Flame },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="flex flex-col items-center gap-1 rounded-xl py-2.5"
-                style={{ background: 'rgba(255,255,255,0.06)' }}
-              >
-                <p className="font-number text-base font-700 leading-none" style={{ color: s.color, fontWeight: 700 }}>{s.value}</p>
-                <p className="text-[10px] text-blue-200/60">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-4 relative">
-            <p className="text-[12.5px] text-blue-200/70 leading-snug mb-3">
-              Get Funded to unlock trading, payouts, the leaderboard &amp; your stats.
-            </p>
-            <button onClick={() => navigate('/challenges')} className="btn-primary w-full !py-3.5 text-base">
-              <Rocket size={18} /> Get Funded
-            </button>
-          </div>
-        )}
+        {/* Performance mini stats */}
+        <div className="grid grid-cols-3 gap-2 mt-4 relative">
+          {[
+            { label: 'P&L', value: formatPct(profitPct, 1), color: profitPct >= 0 ? '#4ade80' : '#f87171', icon: TrendingUp },
+            { label: 'Win Rate', value: `${stats.winRate}%`, color: '#4DB8FF', icon: Trophy },
+            { label: 'Best Streak', value: `${stats.maxConsecutiveWins}W`, color: '#fbbf24', icon: Flame },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="flex flex-col items-center gap-1 rounded-xl py-2.5"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
+            >
+              <p className="font-number text-base font-700 leading-none" style={{ color: s.color, fontWeight: 700 }}>{s.value}</p>
+              <p className="text-[10px] text-blue-200/60">{s.label}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Profit Target Progress — only once funded */}
-      {activeChallenge && (
-        <div className="card-base !p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700 }}>Profit Target</p>
-            <span className="text-xs font-600 text-accent-app">
-              {profitTarget.percentComplete.toFixed(1)}%
-            </span>
-          </div>
-          <div className="progress-track">
-            <div
-              className="progress-fill progress-fill-accent"
-              style={{ width: `${Math.min(100, profitTarget.percentComplete)}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-[11px] text-tertiary font-number">
-              ${profitTarget.current.toFixed(0)} earned
-            </p>
-            <p className="text-[11px] text-tertiary font-number">
-              ${(profitTarget.target - profitTarget.current).toFixed(0)} remaining
-            </p>
-          </div>
+      {/* Profit Target Progress */}
+      <div className="card-base !p-4">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700 }}>Profit Target</p>
+          <span className="text-xs font-600 text-accent-app">
+            {profitTarget.percentComplete.toFixed(1)}%
+          </span>
         </div>
-      )}
+        <div className="progress-track">
+          <div
+            className="progress-fill progress-fill-accent"
+            style={{ width: `${Math.min(100, profitTarget.percentComplete)}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-[11px] text-tertiary font-number">
+            ${profitTarget.current.toFixed(0)} earned
+          </p>
+          <p className="text-[11px] text-tertiary font-number">
+            ${(profitTarget.target - profitTarget.current).toFixed(0)} remaining
+          </p>
+        </div>
+      </div>
 
-      {/* Referral System — funded traders only */}
-      {activeChallenge && (
+      {/* Referral System */}
       <div className="card-base !p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -370,51 +345,45 @@ export default function Profile() {
           </div>
         )}
       </div>
-      )}
 
       {/* Account Section */}
       <div className="card-base !p-4">
         <p className="text-[11px] font-700 text-tertiary uppercase tracking-widest mb-1" style={{ fontWeight: 700 }}>
           Account
         </p>
-        {activeChallenge ? (
-          <MenuItem
-            icon={DollarSign}
-            label="Request Payout"
-            iconBg="rgba(22,163,74,0.1)"
-            iconColor="#16a34a"
-            onClick={() => setPayoutOpen(true)}
-            badge="Available"
-          />
-        ) : (
-          <MenuItem
-            icon={Rocket}
-            label="Get Funded"
-            iconBg="rgba(77,184,255,0.1)"
-            iconColor="#4DB8FF"
-            onClick={() => navigate('/challenges')}
-          />
-        )}
-        {activeChallenge && (
-          <>
-            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-            <MenuItem
-              icon={Trophy}
-              label="Leaderboard"
-              iconBg="rgba(245,158,11,0.1)"
-              iconColor="#d97706"
-              onClick={() => navigate('/leaderboard')}
-            />
-            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-            <MenuItem
-              icon={FileText}
-              label="Trade History"
-              iconBg="rgba(59,130,246,0.1)"
-              iconColor="#3b82f6"
-              onClick={() => navigate('/trading')}
-            />
-          </>
-        )}
+        <MenuItem
+          icon={DollarSign}
+          label="Request Payout"
+          iconBg="rgba(22,163,74,0.1)"
+          iconColor="#16a34a"
+          onClick={() => setPayoutOpen(true)}
+          badge="Available"
+        />
+        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+        <MenuItem
+          icon={Trophy}
+          label="Leaderboard"
+          iconBg="rgba(245,158,11,0.1)"
+          iconColor="#d97706"
+          onClick={() => navigate('/leaderboard')}
+        />
+        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+        <MenuItem
+          icon={FileText}
+          label="Trade History"
+          iconBg="rgba(59,130,246,0.1)"
+          iconColor="#3b82f6"
+          onClick={() => navigate('/trading')}
+        />
+        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+        <MenuItem
+          icon={Wallet}
+          label={isConnected ? `Wallet: ${truncatedAddress}` : 'Connect Wallet'}
+          iconBg="rgba(77,184,255,0.1)"
+          iconColor="#4DB8FF"
+          onClick={isConnected ? disconnect : connect}
+          value={isConnected ? 'Connected' : undefined}
+        />
       </div>
 
       {/* Preferences */}
@@ -450,19 +419,17 @@ export default function Profile() {
         <MenuItem icon={HelpCircle} label="Help & Rules" iconBg="rgba(59,130,246,0.1)" iconColor="#60a5fa" onClick={() => navigate('/help')} />
       </div>
 
-      {/* Danger zone — only when a wallet is actually connected */}
-      {isConnected && (
-        <div className="card-base !p-4">
-          <MenuItem
-            icon={LogOut}
-            label="Disconnect Wallet"
-            iconBg="rgba(239,68,68,0.08)"
-            iconColor="#ef4444"
-            onClick={disconnect}
-            danger
-          />
-        </div>
-      )}
+      {/* Danger zone */}
+      <div className="card-base !p-4">
+        <MenuItem
+          icon={LogOut}
+          label="Disconnect Wallet"
+          iconBg="rgba(239,68,68,0.08)"
+          iconColor="#ef4444"
+          onClick={disconnect}
+          danger
+        />
+      </div>
 
       <LegalFooter />
 
