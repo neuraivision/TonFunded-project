@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
@@ -20,9 +20,7 @@ import {
   Star,
   ArrowUpRight,
   Rocket,
-  ShieldCheck,
 } from 'lucide-react';
-import { getMyRole } from '@/lib/tonfunded';
 import { useTonWallet } from '@/hooks/useTonWallet';
 import { useReferralStore } from '@/stores/referralStore';
 import { useTradingStore } from '@/stores/tradingStore';
@@ -136,8 +134,6 @@ export default function Profile() {
   const [notifEnabled, setNotifEnabled] = useState(true);
   const [avatarSrc, setAvatarSrc] = useState<string>('/logo-192.png');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  useEffect(() => { getMyRole().then((r) => setIsAdmin(r === 'admin')).catch(() => {}); }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -429,22 +425,6 @@ export default function Profile() {
           value={isConnected ? 'Connected' : undefined}
         />
       </div>
-
-      {/* Admin — visible only to admins (role='admin') */}
-      {isAdmin && (
-        <div className="card-base !p-4">
-          <p className="text-[11px] font-700 text-tertiary uppercase tracking-widest mb-1" style={{ fontWeight: 700 }}>
-            Admin
-          </p>
-          <MenuItem
-            icon={ShieldCheck}
-            label="Admin Dashboard"
-            iconBg="rgba(77,184,255,0.1)"
-            iconColor="#4DB8FF"
-            onClick={() => navigate('/admin')}
-          />
-        </div>
-      )}
 
       {/* Preferences */}
       <div className="card-base !p-4">
