@@ -227,7 +227,9 @@ export default function Challenges() {
                 </div>
                 <div className="text-right">
                   <p className="font-number text-xl font-700 text-primary-app leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.03em' }}>
-                    ${tier.fee.toLocaleString()}
+                    ${Number.isInteger(tier.fee)
+                      ? tier.fee.toLocaleString()
+                      : tier.fee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                   <p className="text-[10px] text-tertiary">eval fee</p>
                 </div>
@@ -243,9 +245,11 @@ export default function Challenges() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
                 {[
                   { icon: TrendingUp, label: 'Profit Target', value: `${tier.profitTarget}%`, color: style.color },
-                  { icon: Target, label: 'Daily Loss Max', value: `${tier.maxDailyLoss}%`, color: '#dc2626' },
-                  { icon: Shield, label: 'Overall Loss Max', value: `${tier.maxOverallLoss}%`, color: '#dc2626' },
+                  { icon: Zap, label: 'Max Positions', value: `${tier.maxPositions}`, color: style.color },
+                  { icon: Shield, label: 'Max Drawdown', value: `${tier.maxOverallLoss}%`, color: '#dc2626' },
+                  { icon: Target, label: 'Daily Drawdown', value: `${tier.maxDailyLoss}%`, color: '#dc2626' },
                   { icon: Calendar, label: 'Min Trading Days', value: `${tier.minTradingDays} days`, color: 'var(--text-secondary)' },
+                  { icon: AlertTriangle, label: 'Drawdown Mode', value: tier.drawdownMode, color: 'var(--text-secondary)' },
                 ].map((rule) => (
                   <div key={rule.label} className="flex items-center gap-1.5">
                     <rule.icon size={12} style={{ color: rule.color, flexShrink: 0 }} />

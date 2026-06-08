@@ -77,9 +77,12 @@ export interface ChallengeTier {
   accountSize: number;
   fee: number;
   profitTarget: number;
-  maxDailyLoss: number;
-  maxOverallLoss: number;
+  maxDailyLoss: number;   // "Daily Drawdown"
+  maxOverallLoss: number; // "Max Drawdown"
   minTradingDays: number;
+  maxPositions: number;
+  drawdownMode: string;   // e.g. "EOD" (end-of-day)
+  resetFee: number;       // funded-account reset fee
   badgeBg: string;
   badgeText: string;
 }

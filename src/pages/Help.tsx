@@ -93,24 +93,24 @@ export default function Help() {
           icon={Target}
           iconBg="rgba(77,184,255,0.1)"
           iconColor="#4DB8FF"
-          title="Profit target — 10%"
-          desc="Reach a 10% gain on your starting balance to pass the evaluation."
+          title="Profit target — 45%"
+          desc="Reach a 45% gain on your starting balance to pass the evaluation."
         />
         <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
         <RuleRow
           icon={ShieldAlert}
           iconBg="rgba(239,68,68,0.1)"
           iconColor="#ef4444"
-          title="Daily loss max — 5%"
-          desc="Your equity must not drop more than 5% below the day's starting balance."
+          title="Max drawdown — 25%"
+          desc="Total drawdown from your starting balance must stay within 25% (end-of-day)."
         />
         <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
         <RuleRow
           icon={ShieldAlert}
           iconBg="rgba(239,68,68,0.1)"
           iconColor="#ef4444"
-          title="Overall loss max — 10%"
-          desc="Total drawdown from your starting balance must stay within 10%."
+          title="Daily drawdown — 10%"
+          desc="Your equity must not drop more than 10% below the day's starting balance."
         />
         <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
         <RuleRow

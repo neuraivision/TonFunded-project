@@ -36,6 +36,9 @@ function mapTier(rr: any): ChallengeTier {
     maxDailyLoss: n(rr.daily_drawdown_pct),
     maxOverallLoss: n(rr.overall_drawdown_pct),
     minTradingDays: n(rr.min_trading_days),
+    maxPositions: rr.max_positions != null ? n(rr.max_positions) : 5,
+    drawdownMode: String(rr.drawdown_mode ?? 'EOD'),
+    resetFee: n(rr.reset_fee),
     ...(BADGES[rr.tier] ?? { badgeBg: "#eef2ff", badgeText: "#4DB8FF" }),
   };
 }

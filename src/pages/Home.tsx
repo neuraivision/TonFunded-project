@@ -81,7 +81,7 @@ export default function Home() {
           <p className="text-[10px] font-700 text-tertiary uppercase tracking-[0.1em] mb-3.5" style={{ fontWeight: 700 }}>How it works</p>
           <div className="space-y-3.5">
             {[
-              { icon: BarChart3, t: 'Pass the evaluation', d: 'Hit a 10% profit target within the risk rules.' },
+              { icon: BarChart3, t: 'Pass the evaluation', d: 'Hit a 45% profit target within the risk rules.' },
               { icon: Rocket, t: 'Get funded', d: 'Unlock a funded account up to $200,000.' },
               { icon: Wallet, t: 'Get paid', d: 'Withdraw up to 80% of profits to your TON wallet.' },
             ].map((s, i) => (
