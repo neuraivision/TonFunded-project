@@ -81,6 +81,14 @@ export default function Challenges() {
     }
   };
 
+  // Top-up flow when the user is short on TON.
+  const openAddTon = () => {
+    const url = 'https://ton.org/buy-toncoin';
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg?.openLink) tg.openLink(url);
+    else window.open(url, '_blank', 'noopener');
+  };
+
   const showSticky = !!selectedTier && isConnected && !hasActive;
 
   return (
@@ -311,9 +319,29 @@ export default function Challenges() {
             <p className="text-xs text-red-500 text-center mb-2">{purchaseError}</p>
           )}
           {insufficient ? (
-            <button disabled className="btn-primary !py-4 text-base opacity-60 pointer-events-none">
-              <AlertTriangle size={17} /> Insufficient TON — need ~{totalTon.toFixed(2)} TON
-            </button>
+            <div
+              className="flex items-center gap-3 rounded-xl px-4 py-3"
+              style={{
+                background: 'rgba(245,158,11,0.12)',
+                border: '1px solid rgba(245,158,11,0.32)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.28)',
+              }}
+            >
+              <AlertTriangle size={16} className="flex-shrink-0" style={{ color: '#fbbf24' }} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-700" style={{ color: '#fbbf24', fontWeight: 700 }}>Insufficient TON</p>
+                <p className="text-[11px] text-secondary leading-tight">~{totalTon.toFixed(2)} TON needed for this challenge</p>
+              </div>
+              <button
+                onClick={openAddTon}
+                className="flex-shrink-0 text-[12px] px-3 py-1.5 rounded-lg active:opacity-80 transition-opacity"
+                style={{ background: '#fbbf24', color: '#1a1206', fontWeight: 700 }}
+              >
+                Add TON
+              </button>
+            </div>
           ) : (
             <button
               onClick={handlePay}

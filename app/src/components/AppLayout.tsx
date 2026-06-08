@@ -4,6 +4,7 @@ import { Bell, Wallet, Loader2 } from 'lucide-react';
 import BottomNav from './BottomNav';
 import NotificationPanel from './NotificationPanel';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useChallengeStore } from '@/stores/challengeStore';
 import { useTonWallet } from '@/hooks/useTonWallet';
 
 function PageLoader() {
@@ -27,7 +28,10 @@ export default function AppLayout() {
   const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
   const { unreadCount } = useNotificationStore();
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
   const { isConnected, truncatedAddress, connect } = useTonWallet();
+  // No funded account → no fake unread alerts on the bell.
+  const badge = activeChallenge ? unreadCount : 0;
   const title = PAGE_TITLES[location.pathname] ?? 'TonFunded';
   const isHome = location.pathname === '/';
 
@@ -98,7 +102,7 @@ export default function AppLayout() {
             }}
           >
             <Bell size={15} className="text-secondary" strokeWidth={1.8} />
-            {unreadCount > 0 && (
+            {badge > 0 && (
               <span
                 className="absolute flex items-center justify-center text-white"
                 style={{
@@ -110,7 +114,7 @@ export default function AppLayout() {
                   boxShadow: '0 0 0 2px var(--bg-card)',
                 }}
               >
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {badge > 9 ? '9+' : badge}
               </span>
             )}
           </button>

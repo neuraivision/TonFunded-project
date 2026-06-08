@@ -118,6 +118,17 @@ export const verifyPayment = (transactionId: string) =>
 /** Full purchase flow: create → pay via TON Connect → poll verification.
  *  `tonConnectUI` is the instance from useTonConnectUI(). */
 export async function purchaseAndPay(tier: string, tonConnectUI: any) {
+  // Bind the paying wallet to this account so verify-payment can match the
+  // on-chain payer (works even when the user logged in via Telegram). RLS lets
+  // a user update only their own ton_address.
+  const wallet = tonConnectUI?.account?.address as string | undefined;
+  if (wallet) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.from("users").update({ ton_address: wallet }).eq("id", session.user.id);
+    }
+  }
+
   const res = await startChallengePurchase(tier);
   if (res?.simulated) return res; // dev fallback — challenge already active
 
