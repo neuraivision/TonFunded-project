@@ -7,11 +7,11 @@ import {
   DollarSign,
   Users,
   Trophy,
-  Settings,
   HelpCircle,
   FileText,
   Bell,
   LogOut,
+  Wallet,
   TrendingUp,
   Flame,
   Camera,
@@ -127,7 +127,7 @@ function ReferralFriendRow({
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { truncatedAddress, isConnected, disconnect } = useTonWallet();
+  const { truncatedAddress, isConnected, connect, disconnect } = useTonWallet();
   const { info, linkCopied, copyReferralLink } = useReferralStore();
   const { stats, profitTarget, balance, startingBalance } = useTradingStore();
   const activeChallenge = useChallengeStore((s) => s.activeChallenge);
@@ -376,38 +376,59 @@ export default function Profile() {
       </div>
       )}
 
-      {/* Account Section — only meaningful once funded; the hero handles the unfunded CTA */}
-      {activeChallenge && (
+      {/* Account Section */}
       <div className="card-base !p-4">
         <p className="text-[11px] font-700 text-tertiary uppercase tracking-widest mb-1" style={{ fontWeight: 700 }}>
           Account
         </p>
-        <MenuItem
-          icon={DollarSign}
-          label="Request Payout"
-          iconBg="rgba(22,163,74,0.1)"
-          iconColor="#16a34a"
-          onClick={() => setPayoutOpen(true)}
-          badge="Available"
-        />
+        {activeChallenge ? (
+          <MenuItem
+            icon={DollarSign}
+            label="Request Payout"
+            iconBg="rgba(22,163,74,0.1)"
+            iconColor="#16a34a"
+            onClick={() => setPayoutOpen(true)}
+            badge="Available"
+          />
+        ) : (
+          <MenuItem
+            icon={Rocket}
+            label="Get Funded"
+            iconBg="rgba(77,184,255,0.1)"
+            iconColor="#4DB8FF"
+            onClick={() => navigate('/challenges')}
+          />
+        )}
         <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+        {activeChallenge && (
+          <>
+            <MenuItem
+              icon={Trophy}
+              label="Leaderboard"
+              iconBg="rgba(245,158,11,0.1)"
+              iconColor="#d97706"
+              onClick={() => navigate('/leaderboard')}
+            />
+            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+            <MenuItem
+              icon={FileText}
+              label="Trade History"
+              iconBg="rgba(59,130,246,0.1)"
+              iconColor="#3b82f6"
+              onClick={() => navigate('/trading')}
+            />
+            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+          </>
+        )}
         <MenuItem
-          icon={Trophy}
-          label="Leaderboard"
-          iconBg="rgba(245,158,11,0.1)"
-          iconColor="#d97706"
-          onClick={() => navigate('/leaderboard')}
-        />
-        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-        <MenuItem
-          icon={FileText}
-          label="Trade History"
-          iconBg="rgba(59,130,246,0.1)"
-          iconColor="#3b82f6"
-          onClick={() => navigate('/trading')}
+          icon={Wallet}
+          label={isConnected ? `Wallet: ${truncatedAddress}` : 'Connect Wallet'}
+          iconBg="rgba(77,184,255,0.1)"
+          iconColor="#4DB8FF"
+          onClick={isConnected ? disconnect : connect}
+          value={isConnected ? 'Connected' : undefined}
         />
       </div>
-      )}
 
       {/* Admin — visible only to admins (role='admin') */}
       {isAdmin && (
@@ -452,8 +473,6 @@ export default function Profile() {
           </button>
         </div>
 
-        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-        <MenuItem icon={Settings} label="App Settings" iconBg="rgba(107,114,128,0.1)" iconColor="#6b7280" onClick={() => {}} />
         <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
         <MenuItem icon={HelpCircle} label="Help & Rules" iconBg="rgba(59,130,246,0.1)" iconColor="#60a5fa" onClick={() => navigate('/help')} />
       </div>

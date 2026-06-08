@@ -152,10 +152,7 @@ export const recordTrade = (t: {
 export const requestPayout = (challengeId: string, amount?: number) =>
   callFn("payouts", { action: "request", challengeId, amount });
 
-/* ── Admin ──────────────────────────────────────────────────────────────────
- * Reads rely on RLS: an admin (users.role='admin') can read all rows; a
- * non-admin only ever sees their own, so there is no data leak even if the page
- * is opened directly. */
+/* ── Admin (RLS: admins read all rows; non-admins only their own → no leak) ── */
 export async function getMyRole(): Promise<string | null> {
   const { data } = await supabase.from("users").select("role").maybeSingle();
   return data?.role ?? null;
