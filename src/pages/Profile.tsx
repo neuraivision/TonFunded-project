@@ -377,27 +377,17 @@ export default function Profile() {
         <p className="text-[11px] font-700 text-tertiary uppercase tracking-widest mb-1" style={{ fontWeight: 700 }}>
           Account
         </p>
-        {activeChallenge ? (
-          <MenuItem
-            icon={DollarSign}
-            label="Request Payout"
-            iconBg="rgba(22,163,74,0.1)"
-            iconColor="#16a34a"
-            onClick={() => setPayoutOpen(true)}
-            badge="Available"
-          />
-        ) : (
-          <MenuItem
-            icon={Rocket}
-            label="Get Funded"
-            iconBg="rgba(77,184,255,0.1)"
-            iconColor="#4DB8FF"
-            onClick={() => navigate('/challenges')}
-          />
-        )}
-        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
         {activeChallenge && (
           <>
+            <MenuItem
+              icon={DollarSign}
+              label="Request Payout"
+              iconBg="rgba(22,163,74,0.1)"
+              iconColor="#16a34a"
+              onClick={() => setPayoutOpen(true)}
+              badge="Available"
+            />
+            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
             <MenuItem
               icon={Trophy}
               label="Leaderboard"
