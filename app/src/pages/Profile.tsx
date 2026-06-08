@@ -372,50 +372,38 @@ export default function Profile() {
       </div>
       )}
 
-      {/* Account Section */}
+      {/* Account Section — only meaningful once funded; the hero handles the unfunded CTA */}
+      {activeChallenge && (
       <div className="card-base !p-4">
         <p className="text-[11px] font-700 text-tertiary uppercase tracking-widest mb-1" style={{ fontWeight: 700 }}>
           Account
         </p>
-        {activeChallenge ? (
-          <MenuItem
-            icon={DollarSign}
-            label="Request Payout"
-            iconBg="rgba(22,163,74,0.1)"
-            iconColor="#16a34a"
-            onClick={() => setPayoutOpen(true)}
-            badge="Available"
-          />
-        ) : (
-          <MenuItem
-            icon={Rocket}
-            label="Get Funded"
-            iconBg="rgba(77,184,255,0.1)"
-            iconColor="#4DB8FF"
-            onClick={() => navigate('/challenges')}
-          />
-        )}
-        {activeChallenge && (
-          <>
-            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-            <MenuItem
-              icon={Trophy}
-              label="Leaderboard"
-              iconBg="rgba(245,158,11,0.1)"
-              iconColor="#d97706"
-              onClick={() => navigate('/leaderboard')}
-            />
-            <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
-            <MenuItem
-              icon={FileText}
-              label="Trade History"
-              iconBg="rgba(59,130,246,0.1)"
-              iconColor="#3b82f6"
-              onClick={() => navigate('/trading')}
-            />
-          </>
-        )}
+        <MenuItem
+          icon={DollarSign}
+          label="Request Payout"
+          iconBg="rgba(22,163,74,0.1)"
+          iconColor="#16a34a"
+          onClick={() => setPayoutOpen(true)}
+          badge="Available"
+        />
+        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+        <MenuItem
+          icon={Trophy}
+          label="Leaderboard"
+          iconBg="rgba(245,158,11,0.1)"
+          iconColor="#d97706"
+          onClick={() => navigate('/leaderboard')}
+        />
+        <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
+        <MenuItem
+          icon={FileText}
+          label="Trade History"
+          iconBg="rgba(59,130,246,0.1)"
+          iconColor="#3b82f6"
+          onClick={() => navigate('/trading')}
+        />
       </div>
+      )}
 
       {/* Preferences */}
       <div className="card-base !p-4">
