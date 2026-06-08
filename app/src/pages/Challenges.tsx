@@ -7,7 +7,7 @@ import { purchaseAndPay } from '@/lib/tonfunded';
 import { syncAllFromBackend } from '@/lib/backendSync';
 import {
   Zap, Rocket, CheckCircle, TrendingUp, Shield, Calendar, Target,
-  ChevronRight, Star, Sprout, Crown, Trophy, Gem, AlertTriangle, type LucideIcon,
+  ChevronRight, Star, Sprout, Crown, Trophy, Gem, Wallet, AlertTriangle, type LucideIcon,
 } from 'lucide-react';
 
 // Small gas headroom added on top of the converted fee for the balance check.
@@ -154,6 +154,28 @@ export default function Challenges() {
         </div>
       )}
 
+      {/* Connect-wallet guard banner */}
+      {!hasActive && !isConnected && (
+        <button
+          onClick={connect}
+          className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl mb-4 active:opacity-80 transition-opacity"
+          style={{ background: 'rgba(77,184,255,0.1)', border: '1px solid rgba(77,184,255,0.25)' }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(77,184,255,0.15)' }}>
+              <Wallet size={17} style={{ color: '#4DB8FF' }} />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700 }}>Connect your TON wallet</p>
+              <p className="text-[11px] text-tertiary mt-0.5">Required to pay the evaluation fee and get funded</p>
+            </div>
+          </div>
+          <span className="text-xs px-3 py-1.5 rounded-full flex-shrink-0" style={{ background: '#4DB8FF', color: '#061018', fontWeight: 700 }}>
+            Connect
+          </span>
+        </button>
+      )}
+
       {/* One-active-challenge notice */}
       {hasActive && (
         <p className="text-[12px] text-tertiary mb-4 px-1">
@@ -274,6 +296,8 @@ export default function Challenges() {
                   >
                     {isSelected ? (
                       <><CheckCircle size={12} /> Selected</>
+                    ) : !isConnected ? (
+                      <><Wallet size={12} /> Connect Wallet</>
                     ) : (
                       <>Get Funded <ChevronRight size={11} /></>
                     )}
