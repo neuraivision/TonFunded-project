@@ -298,11 +298,9 @@ export default function Challenges() {
             <div
               className="flex items-center gap-3 rounded-xl px-4 py-3"
               style={{
-                background: 'rgba(245,158,11,0.12)',
-                border: '1px solid rgba(245,158,11,0.32)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.28)',
+                background: 'var(--bg-card)',
+                border: '1px solid rgba(245,158,11,0.45)',
+                boxShadow: '0 -2px 12px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.16)',
               }}
             >
               <AlertTriangle size={16} className="flex-shrink-0" style={{ color: '#fbbf24' }} />

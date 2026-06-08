@@ -1,11 +1,10 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useState, Suspense } from 'react';
-import { Bell, Wallet, Loader2 } from 'lucide-react';
+import { Bell, Loader2 } from 'lucide-react';
 import BottomNav from './BottomNav';
 import NotificationPanel from './NotificationPanel';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useChallengeStore } from '@/stores/challengeStore';
-import { useTonWallet } from '@/hooks/useTonWallet';
 
 function PageLoader() {
   return (
@@ -22,6 +21,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/swap': 'Swap',
   '/leaderboard': 'Leaderboard',
   '/profile': 'Profile',
+  '/help': 'Help & Rules',
 };
 
 export default function AppLayout() {
@@ -29,7 +29,6 @@ export default function AppLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const { unreadCount } = useNotificationStore();
   const activeChallenge = useChallengeStore((s) => s.activeChallenge);
-  const { isConnected, truncatedAddress, connect } = useTonWallet();
   // No funded account → no fake unread alerts on the bell.
   const badge = activeChallenge ? unreadCount : 0;
   const title = PAGE_TITLES[location.pathname] ?? 'TonFunded';
@@ -72,27 +71,8 @@ export default function AppLayout() {
           </div>
         </div>
 
-        {/* Right: wallet status + bell */}
+        {/* Right: bell (wallet connect lives on the page, not the header) */}
         <div className="flex items-center gap-2">
-          {isConnected ? (
-            <div
-              className="flex items-center gap-1.5 px-2.5 h-8 rounded-xl"
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-default)' }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" style={{ boxShadow: '0 0 4px rgba(74,222,128,0.7)' }} />
-              <span className="font-mono text-[11px] text-secondary">{truncatedAddress}</span>
-            </div>
-          ) : (
-            <button
-              onClick={connect}
-              className="flex items-center gap-1.5 px-2.5 h-8 rounded-xl active:opacity-70 transition-opacity"
-              style={{ background: 'rgba(77,184,255,0.12)', border: '1px solid rgba(77,184,255,0.25)' }}
-            >
-              <Wallet size={13} style={{ color: '#4DB8FF' }} />
-              <span className="text-[11px]" style={{ color: '#4DB8FF', fontWeight: 700 }}>Connect</span>
-            </button>
-          )}
-
           <button
             onClick={() => setNotifOpen(true)}
             className="relative flex items-center justify-center w-8 h-8 rounded-xl active:opacity-60 transition-opacity"

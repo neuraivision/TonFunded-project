@@ -13,6 +13,7 @@ const Trading = lazy(() => import('@/pages/Trading'));
 const Swap = lazy(() => import('@/pages/Swap'));
 const Leaderboard = lazy(() => import('@/pages/Leaderboard'));
 const Profile = lazy(() => import('@/pages/Profile'));
+const Help = lazy(() => import('@/pages/Help'));
 const Admin = lazy(() => import('@/pages/Admin'));
 
 export default function App() {
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/swap" element={<Swap />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/help" element={<Help />} />
         <Route path="/admin" element={<Admin />} />
       </Route>
     </Routes>
