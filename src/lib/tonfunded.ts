@@ -147,7 +147,7 @@ export async function purchaseAndPay(tier: string, tonConnectUI: any) {
 }
 export const recordTrade = (t: {
   token: string; side: "buy" | "sell"; amount: number;
-  entryPrice: number; exitPrice?: number; challengeId?: string;
+  entryPrice: number; exitPrice?: number; pnl?: number; challengeId?: string;
 }) => callFn("trades", t);
 export const requestPayout = (challengeId: string, amount?: number) =>
   callFn("payouts", { action: "request", challengeId, amount });

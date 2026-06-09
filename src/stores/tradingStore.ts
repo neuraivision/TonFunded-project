@@ -7,6 +7,21 @@ import type {
   TradeRecord,
   PerformanceStats,
 } from '@/types';
+import { recordTrade } from '@/lib/tonfunded';
+
+// Feed a realized close into the backend risk engine (fire-and-forget; no-op
+// without a backend session / active challenge). The engine recomputes balance
+// + drawdown and auto-breaches if a limit is hit; realtime then updates the UI.
+function reportClose(pos: { tokenPair: string; direction: 'long' | 'short'; entryPrice: number; currentPrice: number; quantity: number }, pnl: number) {
+  recordTrade({
+    token: pos.tokenPair,
+    side: pos.direction === 'short' ? 'buy' : 'sell',
+    amount: Math.abs(pos.quantity * pos.entryPrice),
+    entryPrice: pos.entryPrice,
+    exitPrice: pos.currentPrice,
+    pnl,
+  }).catch(() => {});
+}
 
 interface TradingState {
   // Balance & PnL
@@ -403,6 +418,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
       amount: pos.pnl,
       amountFormatted: pos.pnl >= 0 ? `+$${pos.pnl.toFixed(2)}` : `-$${Math.abs(pos.pnl).toFixed(2)}`,
     });
+
+    reportClose(pos, pos.pnl);
   },
 
   // ── partialClose ─────────────────────────────────────────────────────────────
@@ -461,6 +478,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
       amount: pnlRealized,
       amountFormatted: pnlRealized >= 0 ? `+$${pnlRealized.toFixed(2)}` : `-$${Math.abs(pnlRealized).toFixed(2)}`,
     });
+
+    reportClose({ ...pos, quantity: closeQty }, pnlRealized);
   },
 
   // ── setTakeProfit ─────────────────────────────────────────────────────────────

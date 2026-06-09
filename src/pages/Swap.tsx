@@ -350,6 +350,15 @@ export default function Swap() {
   }, [refreshMarket]);
 
   const handleConfirmSwap = async () => {
+    // Risk lock: if the funded account was breached by the engine, block trading.
+    if (activeChallenge?.status === 'failed') {
+      useSwapStore.setState({
+        status: 'error',
+        errorMessage: 'Account breached — trading is locked. You hit a drawdown limit.',
+      });
+      setConfirmOpen(false);
+      return;
+    }
     await executeSwap();
     setConfirmOpen(false);
   };
