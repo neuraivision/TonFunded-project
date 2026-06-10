@@ -19,8 +19,14 @@ import {
 export default function Home() {
   const navigate = useNavigate();
   const { balance, pnl, pnlPercent, startingBalance } = useTradingStore();
-  const { activeChallenge } = useChallengeStore();
+  const { activeChallenge, tiers } = useChallengeStore();
   const [payoutOpen, setPayoutOpen] = useState(false);
+
+  // Lowest eval fee, derived from the live tiers so this never goes stale.
+  const minFee = tiers.length ? Math.min(...tiers.map((t) => t.fee)) : 0;
+  const minFeeLabel = Number.isInteger(minFee)
+    ? `${minFee.toLocaleString()}`
+    : minFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   useEffect(() => {
     const id = setInterval(() => useTradingStore.getState().updatePrices(), 5000);
@@ -112,7 +118,7 @@ export default function Home() {
             </div>
             <div className="text-left">
               <p className="text-sm font-700 text-primary-app" style={{ fontWeight: 700 }}>Evaluation tiers</p>
-              <p className="text-[11px] text-tertiary mt-0.5">$5K to $200K · from $59</p>
+              <p className="text-[11px] text-tertiary mt-0.5">$5K to $200K · from ${minFeeLabel}</p>
             </div>
           </div>
           <ChevronRight size={16} className="text-tertiary" />
