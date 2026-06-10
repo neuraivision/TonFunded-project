@@ -1,5 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Bell, Loader2 } from 'lucide-react';
 import BottomNav from './BottomNav';
 import NotificationPanel from './NotificationPanel';
@@ -34,6 +34,33 @@ export default function AppLayout() {
   const title = PAGE_TITLES[location.pathname] ?? 'TonFunded';
   const isHome = location.pathname === '/';
 
+  // Telegram fullscreen overlaps the webview with its own top bar; offset the
+  // header by Telegram's safe-area + content-safe-area so the wordmark never
+  // gets clipped under it. (No-op on the web, where these are 0.)
+  const [tgTopInset, setTgTopInset] = useState(0);
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (!tg) return;
+    const update = () => {
+      // contentSafeAreaInset = space taken by Telegram's own top bar (its header),
+      // which overlaps the webview in fullscreen/expanded mode. The device status
+      // bar is handled separately by env(safe-area-inset-top) in CSS.
+      const csa = tg.contentSafeAreaInset?.top ?? 0;
+      setTgTopInset(Number(csa) || 0);
+    };
+    update();
+    try {
+      tg.onEvent?.('contentSafeAreaChanged', update);
+      tg.onEvent?.('safeAreaChanged', update);
+    } catch { /* older Telegram clients */ }
+    return () => {
+      try {
+        tg.offEvent?.('contentSafeAreaChanged', update);
+        tg.offEvent?.('safeAreaChanged', update);
+      } catch { /* noop */ }
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-primary-app flex flex-col max-w-lg mx-auto">
       <header
@@ -41,7 +68,7 @@ export default function AppLayout() {
         style={{
           background: 'var(--bg-card)',
           borderBottom: '1px solid var(--border-default)',
-          paddingTop: 'max(env(safe-area-inset-top, 0px) + 12px, 16px)',
+          paddingTop: `calc(${tgTopInset}px + max(env(safe-area-inset-top, 0px) + 12px, 16px))`,
           paddingBottom: '13px',
           paddingLeft: '20px',
           paddingRight: '20px',
