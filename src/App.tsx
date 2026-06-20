@@ -1,5 +1,5 @@
 import { useEffect, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import AppLayout from '@/components/AppLayout';
 import { ensureSession, supabase } from '@/lib/tonfunded';
@@ -18,11 +18,14 @@ const Help = lazy(() => import('@/pages/Help'));
 
 export default function App() {
   const [tonConnectUI] = useTonConnectUI();
+  const { pathname } = useLocation();
 
   // Boot the backend once: authenticate, replace mock data with real data,
   // then keep balance / drawdown / positions live via realtime.
   // Fails gracefully (keeps mock data) outside Telegram / without a wallet.
+  // Skip on /extension-auth — that page manages its own auth flow.
   useEffect(() => {
+    if (pathname === '/extension-auth') return;
     let stop = () => {};
     (async () => {
       try {
@@ -34,7 +37,7 @@ export default function App() {
       }
     })();
     return () => stop();
-  }, [tonConnectUI]);
+  }, [tonConnectUI, pathname]);
 
   // Whenever a wallet connects, write its address to the user's profile so the
   // admin can always find/grant by wallet address even for Telegram-auth users.
