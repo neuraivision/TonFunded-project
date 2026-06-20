@@ -46,7 +46,18 @@ async function exchange(path: "auth-ton" | "auth-telegram", body: unknown): Prom
 }
 
 export async function loginWithTonConnect(tonConnectUI: TonConnectUI, payload = crypto.randomUUID()) {
+  // Must request ton_proof BEFORE the wallet connects so the wallet signs it.
   tonConnectUI.setConnectRequestParameters({ state: "ready", value: { tonProof: payload } });
+
+  // If wallet is already connected (restored session) with no proof, disconnect
+  // so we can reconnect fresh and get a signed proof.
+  if (tonConnectUI.wallet) {
+    const item = tonConnectUI.wallet.connectItems?.tonProof;
+    if (!item || !("proof" in item)) {
+      await tonConnectUI.disconnect();
+    }
+  }
+
   let wallet: Wallet | null = tonConnectUI.wallet;
   if (!wallet) {
     wallet = await new Promise<Wallet>((resolve, reject) => {
@@ -54,6 +65,7 @@ export async function loginWithTonConnect(tonConnectUI: TonConnectUI, payload = 
       tonConnectUI.openModal();
     });
   }
+
   const item = wallet.connectItems?.tonProof;
   if (!item || !("proof" in item)) throw new Error("Wallet returned no ton_proof — reconnect");
   return exchange("auth-ton", {
@@ -74,8 +86,12 @@ export async function loginWithTelegram(referralCode?: string) {
 export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referralCode?: string }) {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) return session;
-  if (opts?.tonConnectUI?.wallet) {
-    try { return await loginWithTonConnect(opts.tonConnectUI); } catch (e) { console.warn(e); }
+
+  // Wallet is ALWAYS the primary identity (shared across Mini App, Terminal, Extension).
+  // Always try wallet auth first — prompts connection if needed.
+  // Only fall back to Telegram if TON Connect is unavailable or explicitly cancelled.
+  if (opts?.tonConnectUI) {
+    try { return await loginWithTonConnect(opts.tonConnectUI); } catch (e) { console.warn('[ton-auth]', e); }
   }
   return loginWithTelegram(opts?.referralCode);
 }
