@@ -45,29 +45,11 @@ async function exchange(path: "auth-ton" | "auth-telegram", body: unknown): Prom
   return out.session;
 }
 
-export async function loginWithTonConnect(tonConnectUI: TonConnectUI, payload = crypto.randomUUID()) {
-  // Must request ton_proof BEFORE the wallet connects so the wallet signs it.
-  tonConnectUI.setConnectRequestParameters({ state: "ready", value: { tonProof: payload } });
-
-  // If wallet is already connected (restored session) with no proof, disconnect
-  // so we can reconnect fresh and get a signed proof.
-  if (tonConnectUI.wallet) {
-    const item = tonConnectUI.wallet.connectItems?.tonProof;
-    if (!item || !("proof" in item)) {
-      await tonConnectUI.disconnect();
-    }
-  }
-
-  let wallet: Wallet | null = tonConnectUI.wallet;
-  if (!wallet) {
-    wallet = await new Promise<Wallet>((resolve, reject) => {
-      const unsub = tonConnectUI.onStatusChange((w) => { if (w) { unsub(); resolve(w); } }, reject);
-      tonConnectUI.openModal();
-    });
-  }
-
+// Sign in immediately from a wallet object that already has a fresh ton_proof.
+// Called from onStatusChange so we switch sessions the moment the wallet connects.
+export async function loginWithWallet(wallet: Wallet): Promise<Session> {
   const item = wallet.connectItems?.tonProof;
-  if (!item || !("proof" in item)) throw new Error("Wallet returned no ton_proof — reconnect");
+  if (!item || !("proof" in item)) throw new Error("no ton_proof on wallet");
   return exchange("auth-ton", {
     address: wallet.account.address, publicKey: wallet.account.publicKey,
     proof: {
@@ -75,6 +57,23 @@ export async function loginWithTonConnect(tonConnectUI: TonConnectUI, payload = 
       payload: item.proof.payload, signature: item.proof.signature,
     },
   });
+}
+
+export async function loginWithTonConnect(tonConnectUI: TonConnectUI, payload = crypto.randomUUID()) {
+  tonConnectUI.setConnectRequestParameters({ state: "ready", value: { tonProof: payload } });
+  // If wallet is restored (no fresh proof) disconnect so we can reconnect with one.
+  if (tonConnectUI.wallet) {
+    const item = tonConnectUI.wallet.connectItems?.tonProof;
+    if (!item || !("proof" in item)) await tonConnectUI.disconnect();
+  }
+  let wallet: Wallet | null = tonConnectUI.wallet;
+  if (!wallet) {
+    wallet = await new Promise<Wallet>((resolve, reject) => {
+      const unsub = tonConnectUI.onStatusChange((w) => { if (w) { unsub(); resolve(w); } }, reject);
+      tonConnectUI.openModal();
+    });
+  }
+  return loginWithWallet(wallet);
 }
 
 export async function loginWithTelegram(referralCode?: string) {
@@ -85,11 +84,23 @@ export async function loginWithTelegram(referralCode?: string) {
 
 export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referralCode?: string }) {
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) return session;
 
-  // Wallet is ALWAYS the primary identity (shared across Mini App, Terminal, Extension).
-  // Always try wallet auth first — prompts connection if needed.
-  // Only fall back to Telegram if TON Connect is unavailable or explicitly cancelled.
+  // If there's a cached session, verify it belongs to the connected wallet.
+  // Telegram sessions are secondary — if a wallet is connected, wallet wins.
+  if (session && opts?.tonConnectUI?.wallet) {
+    const { data: profile } = await supabase
+      .from("users").select("ton_address").eq("id", session.user.id).maybeSingle();
+    const walletAddr = opts.tonConnectUI.wallet.account.address;
+    if (profile?.ton_address && profile.ton_address !== walletAddr) {
+      // Session belongs to a different user than the connected wallet — clear it.
+      await supabase.auth.signOut();
+    } else if (profile?.ton_address === walletAddr) {
+      return session; // session already matches wallet — all good
+    }
+  } else if (session) {
+    return session;
+  }
+
   if (opts?.tonConnectUI) {
     try { return await loginWithTonConnect(opts.tonConnectUI); } catch (e) { console.warn('[ton-auth]', e); }
   }

@@ -2,7 +2,7 @@ import { useEffect, lazy } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import AppLayout from '@/components/AppLayout';
-import { ensureSession, supabase } from '@/lib/tonfunded';
+import { ensureSession, loginWithWallet, supabase } from '@/lib/tonfunded';
 import { syncAllFromBackend, startRealtime } from '@/lib/backendSync';
 
 // Lazy-load each page so the first paint only ships the shell + the current
@@ -39,19 +39,25 @@ export default function App() {
     return () => stop();
   }, [tonConnectUI, pathname]);
 
-  // Whenever a wallet connects, write its address to the user's profile so the
-  // admin can always find/grant by wallet address even for Telegram-auth users.
+  // When wallet freshly connects (has a ton_proof), immediately switch the
+  // session to the wallet identity — this is the shared identity across
+  // Mini App, Terminal, and Extension.
   useEffect(() => {
-    return tonConnectUI.onStatusChange((wallet) => {
+    let stopRealtime = () => {};
+    const unsub = tonConnectUI.onStatusChange(async (wallet) => {
       if (!wallet?.account?.address) return;
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) return;
-        supabase.from('users')
-          .update({ ton_address: wallet.account.address })
-          .eq('id', session.user.id)
-          .then(() => {});
-      });
+      const item = wallet.connectItems?.tonProof;
+      if (!item || !("proof" in item)) return; // restored session — no proof available
+      try {
+        const session = await loginWithWallet(wallet);
+        await syncAllFromBackend();
+        stopRealtime();
+        if (session?.user?.id) stopRealtime = startRealtime(session.user.id);
+      } catch (e) {
+        console.warn('[wallet-switch]', e);
+      }
     });
+    return () => { unsub(); stopRealtime(); };
   }, [tonConnectUI]);
 
   return (
