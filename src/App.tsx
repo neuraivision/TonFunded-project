@@ -2,11 +2,12 @@ import { useEffect, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import AppLayout from '@/components/AppLayout';
-import { ensureSession } from '@/lib/tonfunded';
+import { ensureSession, supabase } from '@/lib/tonfunded';
 import { syncAllFromBackend, startRealtime } from '@/lib/backendSync';
 
 // Lazy-load each page so the first paint only ships the shell + the current
 // route's chunk (much faster first load on mobile/LTE).
+const ExtensionAuth = lazy(() => import('@/pages/ExtensionAuth'));
 const Home = lazy(() => import('@/pages/Home'));
 const Challenges = lazy(() => import('@/pages/Challenges'));
 const Trading = lazy(() => import('@/pages/Trading'));
@@ -35,8 +36,25 @@ export default function App() {
     return () => stop();
   }, [tonConnectUI]);
 
+  // Whenever a wallet connects, write its address to the user's profile so the
+  // admin can always find/grant by wallet address even for Telegram-auth users.
+  useEffect(() => {
+    return tonConnectUI.onStatusChange((wallet) => {
+      if (!wallet?.account?.address) return;
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) return;
+        supabase.from('users')
+          .update({ ton_address: wallet.account.address })
+          .eq('id', session.user.id)
+          .then(() => {});
+      });
+    });
+  }, [tonConnectUI]);
+
   return (
     <Routes>
+      {/* Standalone — no nav shell */}
+      <Route path="/extension-auth" element={<ExtensionAuth />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/challenges" element={<Challenges />} />
