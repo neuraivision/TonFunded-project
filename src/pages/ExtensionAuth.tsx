@@ -180,59 +180,34 @@ export default function ExtensionAuth() {
         {/* ── needs login ── */}
         {phase === 'needs-login' && <>
           <div style={{
-            width: 56, height: 56, borderRadius: '50%',
-            background: 'rgba(77,184,255,.1)',
+            width: 64, height: 64, borderRadius: '50%',
+            background: 'rgba(77,184,255,.08)',
+            border: '1.5px solid rgba(77,184,255,.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="8" r="4" stroke={BLUE} strokeWidth="1.8"/>
-              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={BLUE} strokeWidth="1.8" strokeLinecap="round"/>
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M12 5l-7 7 7 7" stroke={BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h2 style={{ color: TEXT, fontSize: 20, fontWeight: 700, margin: 0 }}>Sign in first</h2>
+          <h2 style={{ color: TEXT, fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-.3px' }}>Connect your wallet</h2>
           <p style={{ color: DIM, fontSize: 13.5, lineHeight: 1.65, margin: 0 }}>
-            Open TonFunded and sign in with your wallet, then come back here and tap <strong style={{ color: TEXT }}>I've signed in</strong> below.
+            Link your TON wallet to activate Ton Tap on your funded account.
           </p>
 
-          {/* Two-step approach */}
-          <div style={{
-            width: '100%', background: SURF, borderRadius: 14,
-            border: '1px solid rgba(77,184,255,.1)',
-            padding: '14px 16px', textAlign: 'left',
-            display: 'flex', flexDirection: 'column', gap: 10,
-          }}>
-            <Step n={1} text="Open TonFunded and sign in with your TON wallet" />
-            <Step n={2} text="Come back to this tab and tap the button below" />
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 }}>
-            <Btn onClick={retryWithSession}>I've signed in</Btn>
-            <Btn secondary onClick={() => window.open('https://app.tonfunded.xyz', '_blank')}>Open TonFunded</Btn>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,.06)', paddingTop: 8, width: '100%' }}>
-              <p style={{ color: DIM, fontSize: 12, margin: '0 0 8px' }}>Or connect your wallet directly:</p>
-              <Btn secondary onClick={connectWallet}>Connect Wallet</Btn>
-            </div>
+            <Btn onClick={connectWallet}>Connect Wallet</Btn>
+            <button onClick={retryWithSession} style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: DIM, fontSize: 12.5, padding: '6px', textDecoration: 'underline',
+              textDecorationColor: 'rgba(125,143,165,.4)',
+            }}>
+              Already signed in? Try again
+            </button>
           </div>
         </>}
 
         {/* ── connected ✓ ── */}
-        {phase === 'connected' && <>
-          <div style={{
-            width: 68, height: 68, borderRadius: '50%',
-            background: `linear-gradient(135deg,${BLUE} 0%,${BLUE2} 100%)`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 36px rgba(77,184,255,.38)',
-          }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12l5 5L19 7" stroke="#03111E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <h1 style={{ color: TEXT, fontSize: 26, fontWeight: 800, letterSpacing: '-.3px', margin: 0 }}>Connected!</h1>
-          <p style={{ color: DIM, fontSize: 14, lineHeight: 1.65, margin: 0 }}>
-            Your TonFunded account is now linked to the extension.<br/>You can close this tab.
-          </p>
-          <Btn onClick={() => window.close()}>Close Tab</Btn>
-        </>}
+        {phase === 'connected' && <ConnectedView />}
 
         {/* ── error ── */}
         {phase === 'error' && <>
@@ -259,10 +234,39 @@ export default function ExtensionAuth() {
 
       <style>{`
         @keyframes tf-spin { to { transform: rotate(360deg); } }
+        @keyframes tf-pop  { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         * { box-sizing: border-box; }
       `}</style>
     </div>
   );
+}
+
+function ConnectedView() {
+  const [secs, setSecs] = useState(3);
+  useEffect(() => {
+    const t = setInterval(() => setSecs(s => s - 1), 1000);
+    const close = setTimeout(() => window.close(), 3000);
+    return () => { clearInterval(t); clearTimeout(close); };
+  }, []);
+  return <>
+    <div style={{
+      width: 72, height: 72, borderRadius: '50%',
+      background: `linear-gradient(135deg,${BLUE} 0%,${BLUE2} 100%)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: '0 0 40px rgba(77,184,255,.4)',
+      animation: 'tf-pop .35s cubic-bezier(.34,1.56,.64,1)',
+    }}>
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
+        <path d="M5 12l5 5L19 7" stroke="#03111E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    </div>
+    <h1 style={{ color: TEXT, fontSize: 28, fontWeight: 800, letterSpacing: '-.4px', margin: 0 }}>Connected!</h1>
+    <p style={{ color: DIM, fontSize: 14, lineHeight: 1.65, margin: 0 }}>
+      Your TonFunded account is linked.<br/>
+      This tab closes in {secs}…
+    </p>
+    <Btn onClick={() => window.close()}>Close Now</Btn>
+  </>;
 }
 
 function Step({ n, text }: { n: number; text: string }) {
