@@ -1,242 +1,251 @@
 import { useEffect, useRef, useState } from 'react';
-import { useTonConnectUI } from '@tonconnect/ui-react';
-import { supabase, loginWithTonConnect } from '@/lib/tonfunded';
+import { supabase } from '@/lib/tonfunded';
 
-type Phase =
-  | 'checking'        // pinging extension + checking session
-  | 'needs-login'     // no session — instruct user to sign in on TonFunded first
-  | 'wallet-open'     // TON Connect modal open
-  | 'linking'         // session found, messaging the extension
-  | 'connected'       // all done ✓
-  | 'error';
-
-const BG    = '#090E17';
 const BLUE  = '#4DB8FF';
 const BLUE2 = '#2AA8F2';
 const TEXT  = '#E8EEF8';
 const DIM   = '#7D8FA5';
-const SURF  = '#111720';
-
-function Spinner({ label }: { label?: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: '50%',
-        border: '3px solid rgba(77,184,255,.15)',
-        borderTopColor: BLUE,
-        animation: 'tf-spin .8s linear infinite',
-      }} />
-      {label && <p style={{ color: DIM, fontSize: 14, margin: 0 }}>{label}</p>}
-    </div>
-  );
-}
-
-function Btn({ children, onClick, secondary }: { children: React.ReactNode; onClick?: () => void; secondary?: boolean }) {
-  return (
-    <button onClick={onClick} style={{
-      width: '100%', padding: '14px', borderRadius: 14, border: secondary ? '1px solid rgba(255,255,255,.1)' : 'none',
-      cursor: 'pointer',
-      background: secondary ? 'rgba(255,255,255,.06)' : `linear-gradient(90deg,${BLUE} 0%,${BLUE2} 100%)`,
-      color: secondary ? DIM : '#03111E', fontSize: 14, fontWeight: secondary ? 600 : 800,
-    }}>
-      {children}
-    </button>
-  );
-}
+const DARK  = '#060C14';
+const PANEL = '#03080F';
+const CARD  = '#0D1520';
+const ERR   = '#f87171';
 
 export default function ExtensionAuth() {
-  const [tonConnectUI] = useTonConnectUI();
-  const [phase, setPhase]   = useState<Phase>('checking');
-  const [errMsg, setErrMsg] = useState('');
-  const ran = useRef(false);
-
   const params = new URLSearchParams(window.location.search);
   const extId  = params.get('ext') || '';
 
-  // ── wake + ping extension (MV3 workers go dormant) ─────────────────────
-  function ping(): Promise<boolean> {
-    return new Promise((resolve) => {
-      try {
-        const cr = (window as any).chrome;
-        if (!extId || !cr?.runtime?.sendMessage) { resolve(false); return; }
-        // Wake-up ping
-        cr.runtime.sendMessage(extId, { type: 'PING' }, (r: any) => {
-          void (window as any).chrome?.runtime?.lastError;
-          resolve(!!(r && r.ok));
-        });
-        setTimeout(() => resolve(false), 3000); // 3s timeout
-      } catch { resolve(false); }
-    });
+  // Guard: only accessible when launched by the Ton Tap extension
+  if (!extId) {
+    window.location.replace('/');
+    return null;
   }
 
-  // ── send the actual auth handshake ──────────────────────────────────────
-  async function handshake(session: any) {
-    setPhase('linking');
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [done,     setDone]     = useState(false);
+  const [errMsg,   setErrMsg]   = useState('');
+  const ran = useRef(false);
 
-    const alive = await ping();
-    if (!alive) {
-      setErrMsg(
-        extId
-          ? 'Could not reach the Ton Tap extension.\nMake sure it is installed, enabled, then try again.'
-          : 'No extension ID in the URL — please click "Sign In to Ton Tap" from the extension popup again.'
-      );
-      setPhase('error');
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) handshake(session);
+    });
+  }, []);
+
+  function handshake(session: any) {
+    setLoading(true);
+    setErrMsg('');
+
+    if (!extId) {
+      setErrMsg('No extension ID — click "Sign In to Ton Tap" from the popup again.');
+      setLoading(false);
+      return;
+    }
+    const cr = (window as any).chrome;
+    if (!cr?.runtime?.sendMessage) {
+      setErrMsg('Chrome extension API not found. Use Chrome with Ton Tap installed.');
+      setLoading(false);
       return;
     }
 
-    const walletAddress =
-      tonConnectUI.wallet?.account?.address ||
-      (session.user.user_metadata as any)?.address ||
-      '';
+    let settled = false;
+    const tid = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      setLoading(false);
+      setErrMsg('Extension timed out.\nGo to chrome://extensions → reload Ton Tap → try again.');
+    }, 6000);
 
-    const cr = (window as any).chrome;
     cr.runtime.sendMessage(
       extId,
       {
         type:    'TONTAP_AUTH',
         token:   session.access_token,
-        method:  session.user.app_metadata?.provider || 'wallet',
+        method:  session.user.app_metadata?.provider || 'email',
         email:   session.user.email || '',
-        address: walletAddress,
+        address: (session.user.user_metadata as any)?.address || '',
       },
       (res: { ok?: boolean } | undefined) => {
-        const err = (window as any).chrome?.runtime?.lastError;
-        if (err || !res?.ok) {
-          setErrMsg('Extension rejected the session — ' + (err?.message || 'unknown error') + '. Reload and try again.');
-          setPhase('error');
+        clearTimeout(tid);
+        if (settled) return;
+        settled = true;
+        const lastErr = (window as any).chrome?.runtime?.lastError;
+        setLoading(false);
+        if (lastErr) {
+          setErrMsg(`Extension unreachable: ${lastErr.message}\nGo to chrome://extensions → reload Ton Tap → try again.`);
           return;
         }
-        setPhase('connected');
+        if (!res?.ok) {
+          setErrMsg('Extension rejected the session.\nGo to chrome://extensions → reload Ton Tap → try again.');
+          return;
+        }
+        setDone(true);
       }
     );
   }
 
-  // ── on mount: check session, then handshake or guide user ───────────────
-  useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
-    (async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await handshake(session);
-        } else {
-          setPhase('needs-login');
-        }
-      } catch {
-        setPhase('needs-login');
-      }
-    })();
-  }, []);
-
-  // ── wallet connect flow (for users without a session) ──────────────────
-  async function connectWallet() {
-    setPhase('wallet-open');
-    try {
-      await loginWithTonConnect(tonConnectUI);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Session was not established after wallet connect');
-      await handshake(session);
-    } catch (e: any) {
-      setErrMsg(e?.message || 'Wallet connection failed — please try again.');
-      setPhase('error');
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErrMsg('');
+    setLoading(true);
+    const { data: { session }, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (error || !session) {
+      setErrMsg(error?.message || 'Invalid email or password.');
+      setLoading(false);
+      return;
     }
+    handshake(session);
   }
 
-  // ── re-check session (for users who just signed in on main app) ─────────
-  async function retryWithSession() {
-    setPhase('checking');
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await handshake(session);
-      } else {
-        setPhase('needs-login');
-      }
-    } catch {
-      setPhase('needs-login');
-    }
-  }
+  if (done) return <ConnectedView />;
 
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', padding: '24px',
-      background: BG, fontFamily: '-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif',
+      display: 'flex', minHeight: '100vh',
+      background: DARK,
+      fontFamily: '-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif',
     }}>
-      <img src="/logo.png" alt="TonFunded" style={{ height: 34, marginBottom: 36, opacity: .92 }} />
+      <LeftPanel />
 
-      <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}>
-
-        {/* ── checking / linking ── */}
-        {(phase === 'checking' || phase === 'linking') && (
-          <Spinner label={phase === 'checking' ? 'Checking your account…' : 'Linking to Ton Tap…'} />
-        )}
-
-        {/* ── wallet modal open ── */}
-        {phase === 'wallet-open' && <Spinner label="Waiting for wallet…" />}
-
-        {/* ── needs login ── */}
-        {phase === 'needs-login' && <>
-          <div style={{
-            width: 64, height: 64, borderRadius: '50%',
-            background: 'rgba(77,184,255,.08)',
-            border: '1.5px solid rgba(77,184,255,.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M12 5l-7 7 7 7" stroke={BLUE} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+      {/* ── Right panel: login form ── */}
+      <div style={{
+        width: 480, background: PANEL,
+        display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', alignItems: 'center',
+        padding: '48px 44px',
+        borderLeft: '1px solid rgba(255,255,255,0.04)',
+      }}>
+        <div style={{ width: '100%', maxWidth: 360 }}>
+          {/* Logo row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
+            <img src="/logo.png" alt="TonFunded" style={{ height: 28 }} />
+            <span style={{ color: TEXT, fontSize: 15, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase' }}>
+              TONFUNDED
+            </span>
           </div>
-          <h2 style={{ color: TEXT, fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: '-.3px' }}>Connect your wallet</h2>
-          <p style={{ color: DIM, fontSize: 13.5, lineHeight: 1.65, margin: 0 }}>
-            Link your TON wallet to activate Ton Tap on your funded account.
+
+          <h2 style={{ color: TEXT, fontSize: 28, fontWeight: 900, margin: '0 0 8px', letterSpacing: '-.03em' }}>
+            Welcome back!
+          </h2>
+          <p style={{ color: DIM, fontSize: 14, margin: '0 0 32px', lineHeight: 1.5 }}>
+            Sign in to connect Ton Tap
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 }}>
-            <Btn onClick={connectWallet}>Connect Wallet</Btn>
-            <button onClick={retryWithSession} style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: DIM, fontSize: 12.5, padding: '6px', textDecoration: 'underline',
-              textDecorationColor: 'rgba(125,143,165,.4)',
-            }}>
-              Already signed in? Try again
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              disabled={loading}
+              style={{
+                width: '100%', padding: '14px 16px', borderRadius: 10,
+                background: CARD, border: '1px solid rgba(255,255,255,.07)',
+                color: TEXT, fontSize: 14, outline: 'none',
+              }}
+            />
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              disabled={loading}
+              style={{
+                width: '100%', padding: '14px 16px', borderRadius: 10,
+                background: CARD, border: '1px solid rgba(255,255,255,.07)',
+                color: TEXT, fontSize: 14, outline: 'none',
+              }}
+            />
+
+            {errMsg && (
+              <p style={{ color: ERR, fontSize: 12.5, margin: '2px 0 0', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
+                {errMsg}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 10, border: 'none', marginTop: 4,
+                background: loading
+                  ? 'rgba(77,184,255,.3)'
+                  : `linear-gradient(90deg,${BLUE} 0%,${BLUE2} 100%)`,
+                color: '#03111E', fontSize: 14, fontWeight: 800,
+                cursor: loading ? 'default' : 'pointer',
+                letterSpacing: '.01em',
+              }}
+            >
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
-          </div>
-        </>}
+          </form>
+        </div>
 
-        {/* ── connected ✓ ── */}
-        {phase === 'connected' && <ConnectedView />}
-
-        {/* ── error ── */}
-        {phase === 'error' && <>
-          <div style={{
-            width: 56, height: 56, borderRadius: '50%',
-            background: 'rgba(248,113,113,.1)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="#f87171" strokeWidth="1.8"/>
-              <path d="M12 8v4M12 16h.01" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <h2 style={{ color: TEXT, fontSize: 20, fontWeight: 700, margin: 0 }}>Something went wrong</h2>
-          <p style={{ color: DIM, fontSize: 13, lineHeight: 1.65, margin: 0, whiteSpace: 'pre-line' }}>{errMsg}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 4 }}>
-            <Btn onClick={retryWithSession}>Try Again</Btn>
-            <Btn secondary onClick={() => window.close()}>Close Tab</Btn>
-          </div>
-        </>}
+        <p style={{ marginTop: 'auto', paddingTop: 40, color: 'rgba(255,255,255,.08)', fontSize: 12 }}>
+          © TonFunded {new Date().getFullYear()}
+        </p>
       </div>
 
-      <p style={{ marginTop: 48, color: '#1E2D42', fontSize: 12 }}>© TonFunded {new Date().getFullYear()}</p>
-
       <style>{`
-        @keyframes tf-spin { to { transform: rotate(360deg); } }
-        @keyframes tf-pop  { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         * { box-sizing: border-box; }
+        input::placeholder { color: #1E3050; }
+        input:focus { border-color: rgba(77,184,255,.35) !important; }
       `}</style>
+    </div>
+  );
+}
+
+function LeftPanel() {
+  return (
+    <div style={{
+      flex: 1, position: 'relative', overflow: 'hidden',
+      background: DARK,
+      display: 'flex', flexDirection: 'column',
+      padding: '60px 60px 0',
+    }}>
+      {/* Subtle blue glow — top right */}
+      <div style={{
+        position: 'absolute', top: -120, right: -120,
+        width: 480, height: 480, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(77,184,255,0.11) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Tagline */}
+      <h1 style={{
+        color: TEXT, fontSize: 58, fontWeight: 900,
+        lineHeight: 1.06, letterSpacing: '-0.045em',
+        margin: '0 0 52px',
+        position: 'relative', zIndex: 1, maxWidth: 520,
+      }}>
+        Trade TON.<br />
+        Get Funded. <span style={{ color: BLUE }}>Repeat.</span>
+      </h1>
+
+      {/* Terminal card — floats up from bottom */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        flex: 1, minHeight: 0,
+        borderRadius: '14px 14px 0 0',
+        overflow: 'hidden',
+        border: '1px solid rgba(77,184,255,0.1)',
+        borderBottom: 'none',
+        boxShadow: '0 -8px 60px rgba(77,184,255,0.07)',
+      }}>
+        <img
+          src="/terminal-preview.jpg"
+          alt="TonFunded Terminal"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }}
+        />
+      </div>
     </div>
   );
 }
@@ -245,40 +254,102 @@ function ConnectedView() {
   const [secs, setSecs] = useState(3);
   useEffect(() => {
     const t = setInterval(() => setSecs(s => s - 1), 1000);
-    const close = setTimeout(() => window.close(), 3000);
-    return () => { clearInterval(t); clearTimeout(close); };
+    const c = setTimeout(() => window.close(), 3000);
+    return () => { clearInterval(t); clearTimeout(c); };
   }, []);
-  return <>
-    <div style={{
-      width: 72, height: 72, borderRadius: '50%',
-      background: `linear-gradient(135deg,${BLUE} 0%,${BLUE2} 100%)`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      boxShadow: '0 0 40px rgba(77,184,255,.4)',
-      animation: 'tf-pop .35s cubic-bezier(.34,1.56,.64,1)',
-    }}>
-      <svg width="34" height="34" viewBox="0 0 24 24" fill="none">
-        <path d="M5 12l5 5L19 7" stroke="#03111E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    </div>
-    <h1 style={{ color: TEXT, fontSize: 28, fontWeight: 800, letterSpacing: '-.4px', margin: 0 }}>Connected!</h1>
-    <p style={{ color: DIM, fontSize: 14, lineHeight: 1.65, margin: 0 }}>
-      Your TonFunded account is linked.<br/>
-      This tab closes in {secs}…
-    </p>
-    <Btn onClick={() => window.close()}>Close Now</Btn>
-  </>;
-}
 
-function Step({ n, text }: { n: number; text: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+    <div style={{
+      display: 'flex', minHeight: '100vh',
+      background: DARK,
+      fontFamily: '-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif',
+    }}>
+      <LeftPanel />
+
+      {/* Right: connected state */}
       <div style={{
-        width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
-        background: `linear-gradient(135deg,${BLUE},${BLUE2})`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 11, fontWeight: 800, color: '#03111E',
-      }}>{n}</div>
-      <span style={{ color: '#7D8FA5', fontSize: 13, lineHeight: 1.5, paddingTop: 2 }}>{text}</span>
+        width: 480, background: PANEL,
+        display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', alignItems: 'center',
+        padding: '48px 44px', textAlign: 'center',
+        borderLeft: '1px solid rgba(255,255,255,0.04)',
+        gap: 20,
+      }}>
+        {/* Checkmark with pulse rings */}
+        <div style={{ position: 'relative', width: 76, height: 76, marginBottom: 12 }}>
+          <div className="tf-ring tf-ring1" />
+          <div className="tf-ring tf-ring2" />
+          <div style={{
+            width: 76, height: 76, borderRadius: '50%',
+            background: `linear-gradient(135deg,${BLUE} 0%,${BLUE2} 100%)`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 0 0 0 rgba(77,184,255,.4), 0 8px 40px rgba(77,184,255,.3)`,
+            animation: 'tf-pop .5s cubic-bezier(.34,1.56,.64,1) forwards',
+            position: 'relative', zIndex: 1,
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12l5 5L19 7" stroke="#03111E" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+        <div style={{ animation: 'tf-fadein .5s .25s both' }}>
+          <h2 style={{ color: TEXT, fontSize: 32, fontWeight: 900, margin: '0 0 10px', letterSpacing: '-.03em' }}>
+            Connected!
+          </h2>
+          <p style={{ color: DIM, fontSize: 14, lineHeight: 1.75, margin: 0, maxWidth: 270 }}>
+            Your TonFunded account is now<br />linked to the Ton Tap extension.
+          </p>
+        </div>
+
+        <div style={{ width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 10, animation: 'tf-fadein .5s .4s both' }}>
+          {/* Status pill */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            padding: '10px 16px', borderRadius: 10,
+            background: 'rgba(77,184,255,.07)', border: '1px solid rgba(77,184,255,.15)',
+          }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 6px #4ade80' }} />
+            <span style={{ color: TEXT, fontSize: 13, fontWeight: 600 }}>Extension active</span>
+          </div>
+
+          <button
+            onClick={() => window.close()}
+            style={{
+              padding: '14px 0', borderRadius: 10, border: 'none',
+              background: `linear-gradient(90deg,${BLUE} 0%,${BLUE2} 100%)`,
+              color: '#03111E', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+              width: '100%', letterSpacing: '.01em',
+            }}
+          >
+            Close Tab
+          </button>
+        </div>
+
+        <p style={{ color: 'rgba(255,255,255,.12)', fontSize: 12, margin: 0, animation: 'tf-fadein .5s .55s both' }}>
+          Closes automatically in {secs}s
+        </p>
+
+        <p style={{ marginTop: 'auto', paddingTop: 24, color: 'rgba(255,255,255,.08)', fontSize: 12 }}>
+          © TonFunded {new Date().getFullYear()}
+        </p>
+      </div>
+
+      <style>{`
+        @keyframes tf-pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes tf-fadein { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        @keyframes tf-pulse {
+          0%   { transform: scale(1);   opacity: .55; }
+          100% { transform: scale(2.4); opacity: 0;   }
+        }
+        .tf-ring {
+          position: absolute; border-radius: 50%;
+          border: 1.5px solid rgba(77,184,255,.45);
+          animation: tf-pulse 2s ease-out infinite;
+          top: 0; left: 0; width: 76px; height: 76px;
+        }
+        .tf-ring2 { animation-delay: .7s; border-color: rgba(77,184,255,.25); }
+      `}</style>
     </div>
   );
 }

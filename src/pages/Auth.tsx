@@ -121,6 +121,7 @@ export default function Auth() {
         justifyContent: 'center', alignItems: 'center',
         padding: '48px 44px',
         borderLeft: '1px solid rgba(255,255,255,0.04)',
+        minHeight: '100vh',
       }}>
         <div style={{ width: '100%', maxWidth: 360 }}>
           {/* Logo */}
