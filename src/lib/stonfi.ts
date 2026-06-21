@@ -5,6 +5,8 @@
 // browser with no proxy. We query assets individually by contract address — the
 // full asset list is ~35k entries and far too heavy for a mobile mini app.
 
+import { useTradingStore } from '@/stores/tradingStore';
+
 const STONFI_API = 'https://api.ston.fi/v1/assets';
 
 export interface TokenMarketData {
@@ -53,4 +55,61 @@ export async function fetchStonfiMarket(
     if (r.status === 'fulfilled' && r.value) map[addresses[i]] = r.value;
   });
   return map;
+}
+
+// ─── Price feed ───────────────────────────────────────────────────────────────
+//
+// Maps token symbol → contract address for every token the app can trade.
+// Extend here if new tokens are added.
+const SYMBOL_TO_ADDRESS: Record<string, string> = {
+  TON:    'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
+  GRAM:   'EQBrDGesI9uyzGzVi3kjiRJt1k4Vf7iXVX7AQVQyEPvBYboQ',
+  USDT:   'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs',
+  NOT:    'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT',
+  DOGS:   'EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS',
+  CATI:   'EQD-cvR0Nz6XAyRBvbhz-abTrRC6sI5tvHvvpeQraV9UAAD7',
+  REDO:   'EQBZ_cafPyDr5KUTs0aNxh0ZTDhkpEZONmLJA2SNGlLm4Cko',
+  MAJOR:  'EQCuPm01HldiduQ55xaBF_1kaW_WAUy5DHey8suqzU_MAJOR',
+  STON:   'EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO',
+};
+
+let feedTimer: ReturnType<typeof setInterval> | null = null;
+
+async function pollPrices(symbols: string[]) {
+  const uniqueSymbols = [...new Set(symbols.map((s) => s.toUpperCase()))];
+  const addresses = uniqueSymbols.map((s) => SYMBOL_TO_ADDRESS[s]).filter(Boolean);
+  if (addresses.length === 0) return;
+
+  const market = await fetchStonfiMarket(addresses);
+
+  // Invert: address → symbol, then build symbol → price
+  const pricesBySymbol: Record<string, number> = {};
+  uniqueSymbols.forEach((sym) => {
+    const addr = SYMBOL_TO_ADDRESS[sym];
+    if (addr && market[addr]) pricesBySymbol[sym] = market[addr].usdPrice;
+  });
+
+  if (Object.keys(pricesBySymbol).length > 0) {
+    useTradingStore.getState().applyLivePrices(pricesBySymbol);
+  }
+}
+
+/**
+ * Start the live price feed. Polls STON.fi every `intervalMs` (default 4s)
+ * and updates open positions via `applyLivePrices`. Deduplicated — calling
+ * while already running just re-triggers an immediate fetch.
+ */
+export function startPriceFeed(symbols: string[], intervalMs = 4000) {
+  stopPriceFeed();
+  // Fetch immediately, then on interval
+  pollPrices(symbols);
+  feedTimer = setInterval(() => pollPrices(symbols), intervalMs);
+}
+
+/** Stop the live price feed. */
+export function stopPriceFeed() {
+  if (feedTimer !== null) {
+    clearInterval(feedTimer);
+    feedTimer = null;
+  }
 }

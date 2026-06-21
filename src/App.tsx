@@ -4,6 +4,9 @@ import { useTonConnectUI } from '@tonconnect/ui-react';
 import AppLayout from '@/components/AppLayout';
 import { ensureSession, loginWithWallet, supabase } from '@/lib/tonfunded';
 import { syncAllFromBackend, startRealtime } from '@/lib/backendSync';
+import { startPriceFeed, stopPriceFeed } from '@/lib/stonfi';
+import { useChallengeStore } from '@/stores/challengeStore';
+import { STONFI_TOKENS } from '@/stores/swapStore';
 import NamePromptModal from '@/components/NamePromptModal';
 
 // Lazy-load each page so the first paint only ships the shell + the current
@@ -22,6 +25,7 @@ export default function App() {
   const [tonConnectUI] = useTonConnectUI();
   const { pathname } = useLocation();
   const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
 
   // Boot the backend once: authenticate, replace mock data with real data,
   // then keep balance / drawdown / positions live via realtime.
@@ -68,6 +72,18 @@ export default function App() {
     });
     return () => { unsub(); stopRealtime(); };
   }, [tonConnectUI]);
+
+  // Live STON.fi price feed — runs whenever there's an active challenge.
+  // Polls every 4s, updates open positions with real prices via applyLivePrices.
+  useEffect(() => {
+    const symbols = STONFI_TOKENS.map((t) => t.symbol);
+    if (activeChallenge) {
+      startPriceFeed(symbols, 4000);
+    } else {
+      stopPriceFeed();
+    }
+    return () => stopPriceFeed();
+  }, [activeChallenge]);
 
   return (
     <>

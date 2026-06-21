@@ -64,6 +64,8 @@ interface TradingState {
   partialClose: (id: string, percent: number) => void;
   setTakeProfit: (id: string, percent: number) => void;
   updatePrices: () => void;
+  // Apply real STON.fi prices: symbol→USD price (e.g. { "GRAM": 3.21, "NOT": 0.0041 })
+  applyLivePrices: (prices: Record<string, number>) => void;
   addActivity: (item: Omit<ActivityItem, 'id'>) => void;
   dismissDrawdownAlert: () => void;
   recomputeStats: () => void;
@@ -346,6 +348,52 @@ export const useTradingStore = create<TradingState>((set, get) => ({
       const overallPct = (overallLoss / state.startingBalance) * 100;
 
       // Daily drawdown check — warn at 80%
+      const dailyPct = state.dailyDrawdown.percentOfLimit;
+      const drawdownAlert =
+        dailyPct >= 80 && !state.drawdownAlert
+          ? `Daily drawdown at ${dailyPct.toFixed(0)}% of limit — reduce exposure now`
+          : state.drawdownAlert;
+
+      return {
+        positions: updatedPositions,
+        pnl: parseFloat(totalPnl.toFixed(2)),
+        pnlPercent: parseFloat(((totalPnl / state.startingBalance) * 100).toFixed(2)),
+        balance: parseFloat(newBalance.toFixed(2)),
+        overallDrawdown: {
+          ...state.overallDrawdown,
+          current: -overallLoss,
+          percentOfLimit: parseFloat(Math.min((overallPct / 10) * 100, 100).toFixed(1)),
+        },
+        drawdownAlert,
+      };
+    });
+  },
+
+  // ── applyLivePrices ───────────────────────────────────────────────────────────
+  // Receives { symbol: usdPrice } from the STON.fi price feed and updates every
+  // open position whose tokenPair matches a known symbol (e.g. "GRAM/USDT" → "GRAM").
+  applyLivePrices: (prices) => {
+    set((state) => {
+      if (state.positions.length === 0) return {};
+      const updatedPositions = state.positions.map((p) => {
+        // tokenPair is like "GRAM/USDT" or just "GRAM"
+        const symbol = p.tokenPair.split('/')[0].trim().toUpperCase();
+        const livePrice = prices[symbol];
+        if (!livePrice || livePrice <= 0) return p;
+        const newPnl = (livePrice - p.entryPrice) * p.quantity;
+        return {
+          ...p,
+          currentPrice: livePrice,
+          pnl: newPnl,
+          pnlPercent: ((livePrice - p.entryPrice) / p.entryPrice) * 100,
+        };
+      });
+
+      const totalPnl = updatedPositions.reduce((sum, p) => sum + p.pnl, 0);
+      const newBalance = state.startingBalance + totalPnl;
+      const overallLoss = Math.max(0, state.startingBalance - newBalance);
+      const overallPct = (overallLoss / state.startingBalance) * 100;
+
       const dailyPct = state.dailyDrawdown.percentOfLimit;
       const drawdownAlert =
         dailyPct >= 80 && !state.drawdownAlert

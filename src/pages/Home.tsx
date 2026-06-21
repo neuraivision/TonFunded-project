@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTradingStore } from '@/stores/tradingStore';
 import { useChallengeStore } from '@/stores/challengeStore';
@@ -27,11 +27,6 @@ export default function Home() {
   const minFeeLabel = Number.isInteger(minFee)
     ? `${minFee.toLocaleString()}`
     : minFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-  useEffect(() => {
-    const id = setInterval(() => useTradingStore.getState().updatePrices(), 5000);
-    return () => clearInterval(id);
-  }, []);
 
   const openSupport = () => {
     const url = 'https://t.me/tonfunded';
