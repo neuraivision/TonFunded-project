@@ -57,6 +57,30 @@ export default class ErrorBoundary extends Component<Props, State> {
           <p style={{ fontSize: 14, color: '#7D8FA5', margin: '8px 0 0', maxWidth: 300, lineHeight: 1.5 }}>
             The app hit an unexpected error. Reloading usually fixes it.
           </p>
+          <pre
+            style={{
+              marginTop: 16,
+              maxWidth: 340,
+              maxHeight: 160,
+              overflow: 'auto',
+              textAlign: 'left',
+              fontSize: 11,
+              lineHeight: 1.45,
+              color: '#FF9B9B',
+              background: 'rgba(255,90,90,0.08)',
+              border: '1px solid rgba(255,90,90,0.22)',
+              borderRadius: 10,
+              padding: '10px 12px',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            }}
+          >
+            {String(this.state.error?.message ?? this.state.error)}
+            {this.state.error?.stack
+              ? '\n\n' + this.state.error.stack.split('\n').slice(0, 4).join('\n')
+              : ''}
+          </pre>
           <button
             onClick={this.handleReload}
             style={{
