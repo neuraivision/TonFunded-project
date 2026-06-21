@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/tonfunded';
 import {
   ChevronRight,
   Copy,
@@ -135,6 +136,35 @@ export default function Profile() {
   const [avatarSrc, setAvatarSrc] = useState<string>('/logo-192.png');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Real name from Supabase
+  const [displayName, setDisplayName] = useState('');
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      supabase.from('users').select('name').eq('id', session.user.id).maybeSingle()
+        .then(({ data }) => {
+          const n = data?.name || session.user.user_metadata?.name || '';
+          setDisplayName(n);
+          setNameInput(n);
+        });
+    });
+  }, []);
+
+  const saveName = async () => {
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === displayName) { setEditingName(false); return; }
+    setSavingName(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) await supabase.from('users').update({ name: trimmed }).eq('id', session.user.id);
+    setDisplayName(trimmed);
+    setEditingName(false);
+    setSavingName(false);
+  };
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -187,9 +217,30 @@ export default function Profile() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-lg font-700 text-white leading-tight" style={{ fontWeight: 700, letterSpacing: '-0.02em' }}>
-              {activeChallenge ? 'Funded Trader' : 'New Trader'}
-            </p>
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false); }}
+                  className="text-sm font-700 text-white bg-white/10 rounded-lg px-2 py-1 outline-none border border-white/20 w-36"
+                  style={{ fontWeight: 700 }}
+                />
+                <button onClick={saveName} disabled={savingName} className="text-xs text-[#4DB8FF] font-700 disabled:opacity-50">
+                  {savingName ? '…' : 'Save'}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingName(true)}
+                className="text-lg font-700 text-white leading-tight text-left group flex items-center gap-1.5"
+                style={{ fontWeight: 700, letterSpacing: '-0.02em' }}
+              >
+                {displayName || (activeChallenge ? 'Funded Trader' : 'New Trader')}
+                <span className="opacity-0 group-hover:opacity-60 transition-opacity text-xs text-blue-300">✏</span>
+              </button>
+            )}
             {isConnected && (
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: '0 0 4px rgba(74,222,128,0.6)' }} />

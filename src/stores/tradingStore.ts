@@ -9,9 +9,17 @@ import type {
 } from '@/types';
 import { recordTrade } from '@/lib/tonfunded';
 
-// Feed a realized close into the backend risk engine (fire-and-forget; no-op
-// without a backend session / active challenge). The engine recomputes balance
-// + drawdown and auto-breaches if a limit is hit; realtime then updates the UI.
+// Fire-and-forget backend risk engine calls. No-op without a session / active challenge.
+// The engine recomputes balance + drawdown and auto-breaches if a limit is hit.
+function reportOpen(pos: { tokenPair: string; direction: 'long' | 'short'; entryPrice: number; quantity: number }) {
+  recordTrade({
+    token: pos.tokenPair,
+    side: pos.direction === 'long' ? 'buy' : 'sell',
+    amount: Math.abs(pos.quantity * pos.entryPrice),
+    entryPrice: pos.entryPrice,
+  }).catch(() => {});
+}
+
 function reportClose(pos: { tokenPair: string; direction: 'long' | 'short'; entryPrice: number; currentPrice: number; quantity: number }, pnl: number) {
   recordTrade({
     token: pos.tokenPair,
@@ -373,6 +381,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
       amount: newPos.pnl,
       amountFormatted: newPos.pnl >= 0 ? `+$${newPos.pnl.toFixed(2)}` : `-$${Math.abs(newPos.pnl).toFixed(2)}`,
     });
+    reportOpen(newPos);
   },
 
   // ── closePosition ────────────────────────────────────────────────────────────
