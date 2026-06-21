@@ -101,9 +101,15 @@ export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referr
     return session;
   }
 
-  if (opts?.tonConnectUI) {
-    try { return await loginWithTonConnect(opts.tonConnectUI); } catch (e) { console.warn('[ton-auth]', e); }
+  // Do NOT auto-open the TON Connect modal on boot. Wallet auth happens only when
+  // the user explicitly connects (handled by the onStatusChange handler in App.tsx).
+  // If a wallet is already connected with a fresh proof, authenticate silently.
+  const w = opts?.tonConnectUI?.wallet;
+  const proofItem = w?.connectItems?.tonProof;
+  if (w && proofItem && "proof" in proofItem) {
+    try { return await loginWithWallet(w); } catch (e) { console.warn('[ton-auth]', e); }
   }
+  // Telegram initData auth (no popup); throws outside Telegram → app runs in mock mode.
   return loginWithTelegram(opts?.referralCode);
 }
 

@@ -1,13 +1,15 @@
-import { useEffect, lazy } from 'react';
+import { useEffect, lazy, useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import AppLayout from '@/components/AppLayout';
 import { ensureSession, loginWithWallet, supabase } from '@/lib/tonfunded';
 import { syncAllFromBackend, startRealtime } from '@/lib/backendSync';
+import NamePromptModal from '@/components/NamePromptModal';
 
 // Lazy-load each page so the first paint only ships the shell + the current
 // route's chunk (much faster first load on mobile/LTE).
 const ExtensionAuth = lazy(() => import('@/pages/ExtensionAuth'));
+const Auth = lazy(() => import('@/pages/Auth'));
 const Home = lazy(() => import('@/pages/Home'));
 const Challenges = lazy(() => import('@/pages/Challenges'));
 const Trading = lazy(() => import('@/pages/Trading'));
@@ -19,19 +21,26 @@ const Help = lazy(() => import('@/pages/Help'));
 export default function App() {
   const [tonConnectUI] = useTonConnectUI();
   const { pathname } = useLocation();
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
 
   // Boot the backend once: authenticate, replace mock data with real data,
   // then keep balance / drawdown / positions live via realtime.
   // Fails gracefully (keeps mock data) outside Telegram / without a wallet.
   // Skip on /extension-auth — that page manages its own auth flow.
   useEffect(() => {
-    if (pathname === '/extension-auth') return;
+    if (pathname === '/extension-auth' || pathname === '/auth') return;
     let stop = () => {};
     (async () => {
       try {
         const session = await ensureSession({ tonConnectUI });
         await syncAllFromBackend();
-        if (session?.user?.id) stop = startRealtime(session.user.id);
+        if (session?.user?.id) {
+          stop = startRealtime(session.user.id);
+          // After auth, check if the user has set a display name yet.
+          const { data: profile } = await supabase
+            .from('users').select('name').eq('id', session.user.id).maybeSingle();
+          if (!profile?.name) setShowNamePrompt(true);
+        }
       } catch (e) {
         console.warn('[tonfunded] backend init skipped, using mock data:', e);
       }
@@ -61,9 +70,12 @@ export default function App() {
   }, [tonConnectUI]);
 
   return (
+    <>
+      {showNamePrompt && <NamePromptModal onDone={() => setShowNamePrompt(false)} />}
     <Routes>
       {/* Standalone — no nav shell */}
       <Route path="/extension-auth" element={<ExtensionAuth />} />
+      <Route path="/auth" element={<Auth />} />
       <Route element={<AppLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/challenges" element={<Challenges />} />
@@ -74,5 +86,6 @@ export default function App() {
         <Route path="/help" element={<Help />} />
       </Route>
     </Routes>
+    </>
   );
 }
