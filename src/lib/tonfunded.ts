@@ -17,6 +17,24 @@ export const supabase = createClient(URL, ANON, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
 });
 
+// Compare two TON addresses across format differences (raw "0:hex", UQ..., EQ...).
+// Extracts the 32-byte account hash from either format and compares them.
+function sameWallet(a: string, b: string): boolean {
+  const extractHash = (s: string): string => {
+    if (s.includes(":")) return s.split(":")[1].toLowerCase();
+    try {
+      const bytes = Uint8Array.from(
+        atob(s.replace(/-/g, "+").replace(/_/g, "/")),
+        (c) => c.charCodeAt(0),
+      );
+      return Array.from(bytes.slice(2, 34))
+        .map((x) => x.toString(16).padStart(2, "0"))
+        .join("");
+    } catch { return s; }
+  };
+  return extractHash(a) === extractHash(b);
+}
+
 async function callFn<T = any>(name: string, body: unknown): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession();
   const res = await fetch(`${FUNCTIONS}/${name}`, {
@@ -91,10 +109,10 @@ export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referr
     const { data: profile } = await supabase
       .from("users").select("ton_address").eq("id", session.user.id).maybeSingle();
     const walletAddr = opts.tonConnectUI.wallet.account.address;
-    if (profile?.ton_address && profile.ton_address !== walletAddr) {
+    if (profile?.ton_address && !sameWallet(profile.ton_address, walletAddr)) {
       // Session belongs to a different user than the connected wallet — clear it.
       await supabase.auth.signOut();
-    } else if (profile?.ton_address === walletAddr) {
+    } else if (profile?.ton_address && sameWallet(profile.ton_address, walletAddr)) {
       return session; // session already matches wallet — all good
     }
   } else if (session) {
