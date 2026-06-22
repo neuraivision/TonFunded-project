@@ -11,6 +11,7 @@ import {
 import { useChallengeStore } from "@/stores/challengeStore";
 import { useTradingStore } from "@/stores/tradingStore";
 import { usePayoutStore } from "@/stores/payoutStore";
+import { useReferralStore } from "@/stores/referralStore";
 import type { ChallengeTier, Challenge, Position } from "@/types";
 
 // Keep the page-facing badge colors stable per tier.
@@ -176,11 +177,50 @@ async function refreshPayouts() {
 // ─── public API ──────────────────────────────────────────────────────────────
 
 /** One-shot full load after login. Replaces mock data in all stores. */
+async function refreshReferral() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) return;
+  const { data: user } = await supabase
+    .from("users")
+    .select("referral_code, referrals:referrals(id,referee_id,status,earned_amount,created_at,users!referee_id(name))")
+    .eq("id", session.user.id)
+    .maybeSingle();
+  if (!user) return;
+
+  const code = user.referral_code ?? "TONFUND-XXXX";
+  const referrals: any[] = Array.isArray(user.referrals) ? user.referrals : [];
+  const friends = referrals.map((r: any, i: number) => ({
+    id: r.id ?? `rf_${i}`,
+    displayName: r.users?.name ?? `Trader ${i + 1}`,
+    joinedAt: r.created_at ?? new Date().toISOString(),
+    hasPurchasedChallenge: r.status !== "pending",
+    earningsGenerated: Number(r.earned_amount ?? 0),
+    status: (r.status === "paid" ? "earned" : r.status === "active" ? "active" : "pending") as "earned" | "active" | "pending",
+  }));
+
+  const totalEarned = friends.reduce((s, f) => s + f.earningsGenerated, 0);
+  const pendingEarned = friends.filter((f) => f.status === "pending").reduce((s, f) => s + f.earningsGenerated, 0);
+
+  useReferralStore.setState((prev) => ({
+    info: {
+      ...prev.info,
+      referralCode: code,
+      referralLink: `https://t.me/TonFundedBot?start=${code}`,
+      totalReferrals: friends.length,
+      activeReferrals: friends.filter((f) => f.status === "active").length,
+      totalEarningsUsd: totalEarned,
+      pendingEarningsUsd: pendingEarned,
+      friends,
+    },
+  }));
+}
+
 export async function syncAllFromBackend() {
   const { data: tiers } = await getTiers();
   if (tiers) useChallengeStore.setState({ tiers: tiers.map(mapTier) });
   await refreshActive();
   await refreshPayouts();
+  await refreshReferral();
 }
 
 /** Live updates. Returns an unsubscribe function. Call with the user id. */

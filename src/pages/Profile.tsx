@@ -128,8 +128,13 @@ export default function Profile() {
   const navigate = useNavigate();
   const { truncatedAddress, isConnected, connect, disconnect } = useTonWallet();
   const { info, linkCopied, copyReferralLink } = useReferralStore();
-  const { stats, profitTarget, balance, startingBalance } = useTradingStore();
+  const { stats, profitTarget, balance, startingBalance, pnl } = useTradingStore();
   const activeChallenge = useChallengeStore((s) => s.activeChallenge);
+
+  // Payout is available only when the challenge is funded/completed AND there's actual profit
+  const challengeStatus = activeChallenge?.status;
+  const payoutAvailable =
+    (challengeStatus === 'funded' || challengeStatus === 'completed') && pnl > 0;
 
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [notifEnabled, setNotifEnabled] = useState(true);
@@ -436,7 +441,7 @@ export default function Profile() {
               iconBg="rgba(22,163,74,0.1)"
               iconColor="#16a34a"
               onClick={() => setPayoutOpen(true)}
-              badge="Available"
+              badge={payoutAvailable ? 'Available' : undefined}
             />
             <div style={{ height: '1px', background: 'var(--border-default)', margin: '2px 4px' }} />
             <MenuItem
