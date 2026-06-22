@@ -123,7 +123,8 @@ export const getMyChallenges = () =>
   supabase.from("challenges").select("*, risk_rules(*)").order("created_at", { ascending: false });
 export const getActiveChallenge = () =>
   supabase.from("challenges").select("*, risk_rules(*)")
-    .eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle();
+    .in("status", ["active", "passed", "funded"])
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
 export const getLatestPerformance = (challengeId: string) =>
   supabase.from("performance_logs").select("*")
     .eq("challenge_id", challengeId).order("ts", { ascending: false }).limit(1).maybeSingle();
@@ -292,7 +293,7 @@ export function useRiskMonitor(userId?: string) {
       dailyWarning: dDD >= dLim * WARN && !breached,
       overallWarning: oDD >= oLim * WARN && !breached,
       breached, breachReason: challenge?.breach_reason ?? null,
-      locked: breached || (challenge ? challenge.status !== "active" : true),
+      locked: !challenge || breached,
     };
   }, [challenge, perf, positions, loading]);
 }
