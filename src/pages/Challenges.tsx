@@ -82,11 +82,14 @@ export default function Challenges() {
   };
 
   // Top-up flow when the user is short on TON.
+  // Telegram Wallet (@wallet) is the native buy/receive flow inside Telegram.
   const openAddTon = () => {
-    const url = 'https://ton.org/buy-toncoin';
     const tg = (window as any).Telegram?.WebApp;
-    if (tg?.openLink) tg.openLink(url);
-    else window.open(url, '_blank', 'noopener');
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink('https://t.me/wallet');
+    } else {
+      window.open('https://t.me/wallet', '_blank', 'noopener');
+    }
   };
 
   const showSticky = !!selectedTier && isConnected && !hasActive;

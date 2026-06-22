@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useChallengeStore } from '@/stores/challengeStore';
 import LegalFooter from '@/components/LegalFooter';
 
 function openSupport() {
@@ -55,6 +56,8 @@ const STEPS = [
 
 export default function Help() {
   const navigate = useNavigate();
+  const activeChallenge = useChallengeStore((s) => s.activeChallenge);
+  const isFunded = activeChallenge?.status === 'funded' || activeChallenge?.status === 'active';
 
   return (
     <div className="px-4 pt-4 pb-28 page-enter space-y-4">
@@ -159,9 +162,11 @@ export default function Help() {
         <ChevronRight size={16} className="text-tertiary" />
       </button>
 
-      <button onClick={() => navigate('/challenges')} className="btn-primary w-full !py-3.5 text-base">
-        <Rocket size={18} /> Get Funded
-      </button>
+      {!isFunded && (
+        <button onClick={() => navigate('/challenges')} className="btn-primary w-full !py-3.5 text-base">
+          <Rocket size={18} /> Get Funded
+        </button>
+      )}
 
       <LegalFooter />
     </div>

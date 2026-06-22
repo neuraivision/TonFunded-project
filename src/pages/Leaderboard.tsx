@@ -40,15 +40,18 @@ function TierBadge({ tier }: { tier: string }) {
 function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
   const isTop3 = entry.rank <= 3;
 
+  // Use explicit Tailwind dark: classes in addition to CSS vars — Telegram WebView
+  // can race against the .dark class being applied, leaving --bg-card unresolved.
+  const bgClass = entry.isCurrentUser
+    ? 'bg-[--bg-accent-light] dark:bg-[rgba(77,184,255,0.12)]'
+    : isTop3
+      ? 'bg-[--bg-surface] dark:bg-[#171E2A]'
+      : 'bg-[--bg-card] dark:bg-[#111720]';
+
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors"
+      className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors ${bgClass}`}
       style={{
-        background: entry.isCurrentUser
-          ? 'var(--bg-accent-light)'
-          : isTop3
-            ? 'var(--bg-surface)'
-            : 'var(--bg-card)',
         border: entry.isCurrentUser
           ? '1px solid var(--border-accent)'
           : '1px solid var(--border-card)',
