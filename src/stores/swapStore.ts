@@ -6,7 +6,10 @@ import type {
   SwapHistoryItem,
   SwapState,
 } from '@/types';
+import type { TonConnectUI } from '@tonconnect/ui';
 import { fetchStonfiMarket } from '@/lib/stonfi';
+import { executeRealSwap } from '@/lib/stonfiSwap';
+import { recordTrade } from '@/lib/tonfunded';
 
 // ─── STON.fi token catalogue ──────────────────────────────────────────────────
 //
@@ -383,65 +386,70 @@ export const useSwapStore = create<SwapState>((set, get) => ({
   },
 
   // ── fetchQuote ──────────────────────────────────────────────────────────────
-  // Simulates an async call to STON.fi /swap/simulate with an 800ms delay.
-  // Validates inputs before attempting to quote.
+  // Calls STON.fi /v1/swap/simulate for a real quote with accurate price impact.
+  // Falls back to local computeQuote() if the API is unavailable.
   fetchQuote: async () => {
     const { fromToken, toToken, fromAmount, slippage } = get();
-
     const fromAmountNum = parseFloat(fromAmount);
 
-    // Input validation
     if (!fromAmount || isNaN(fromAmountNum) || fromAmountNum <= 0) {
-      set({
-        status: 'error',
-        errorMessage: 'Enter a valid amount to swap.',
-        quote: null,
-        toAmount: '',
-      });
+      set({ status: 'error', errorMessage: 'Enter a valid amount to swap.', quote: null, toAmount: '' });
       return;
     }
-
-    if (fromAmountNum > fromToken.balance) {
+    if (fromAmountNum > fromToken.balance && fromToken.balance > 0) {
       set({
         status: 'error',
         errorMessage: `Insufficient ${fromToken.symbol} balance. You have ${fromToken.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${fromToken.symbol}.`,
-        quote: null,
-        toAmount: '',
+        quote: null, toAmount: '',
       });
       return;
     }
-
     if (fromToken.symbol === toToken.symbol) {
-      set({
-        status: 'error',
-        errorMessage: 'Cannot swap a token for itself.',
-        quote: null,
-        toAmount: '',
-      });
+      set({ status: 'error', errorMessage: 'Cannot swap a token for itself.', quote: null, toAmount: '' });
       return;
     }
-
-    // Minimum swap threshold: $0.10 equivalent
     const fromValueUsd = fromAmountNum * fromToken.usdPrice;
     if (fromValueUsd < 0.1) {
-      set({
-        status: 'error',
-        errorMessage: `Minimum swap value is $0.10. Current value: $${fromValueUsd.toFixed(4)}.`,
-        quote: null,
-        toAmount: '',
-      });
+      set({ status: 'error', errorMessage: `Minimum swap value is $0.10. Current value: $${fromValueUsd.toFixed(4)}.`, quote: null, toAmount: '' });
       return;
     }
 
     set({ status: 'quoting', quote: null, toAmount: '', errorMessage: '' });
 
-    // Simulate network latency: 600–1000ms
-    const delay = 600 + Math.floor(Math.random() * 400);
-    await new Promise<void>((resolve) => setTimeout(resolve, delay));
+    let newQuote: SwapQuote;
+    try {
+      // Raw units: amount × 10^decimals
+      const offerUnits = BigInt(Math.round(fromAmountNum * 10 ** fromToken.decimals)).toString();
+      const slippageDec = (slippage / 100).toFixed(4);
+      const url = `https://api.ston.fi/v1/swap/simulate?offer_address=${encodeURIComponent(fromToken.address)}&ask_address=${encodeURIComponent(toToken.address)}&units=${offerUnits}&slippage_tolerance=${slippageDec}`;
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`STON.fi simulate ${res.status}`);
+      const data = await res.json();
+      const sim = data.swap_rate !== undefined ? data : data.data ?? data;
 
-    const newQuote = computeQuote(fromToken, toToken, fromAmountNum, slippage);
+      const askRaw  = Number(sim.ask_units ?? sim.min_ask_units ?? 0);
+      const minRaw  = Number(sim.min_ask_units ?? askRaw);
+      const askAmt  = askRaw  / 10 ** toToken.decimals;
+      const minAmt  = minRaw  / 10 ** toToken.decimals;
+      const feeRaw  = Number(sim.fee_units ?? 0);
+      const feeAmt  = feeRaw  / 10 ** fromToken.decimals;
+      const impact  = parseFloat((sim.price_impact ?? 0).toString()) * (sim.price_impact < 1 ? 100 : 1);
 
-    // Format toAmount with magnitude-aware precision so large outputs stay compact
+      newQuote = {
+        offerAmount: fromAmountNum,
+        askAmount:    parseFloat(askAmt.toFixed(toToken.decimals > 6 ? 6 : toToken.decimals)),
+        minAskAmount: parseFloat(minAmt.toFixed(toToken.decimals > 6 ? 6 : toToken.decimals)),
+        priceImpact:  parseFloat(impact.toFixed(2)),
+        fee:          parseFloat(feeAmt.toFixed(6)),
+        exchangeRate: parseFloat((askAmt / fromAmountNum).toFixed(8)),
+        routePath:    buildRoutePath(fromToken.symbol, toToken.symbol),
+        poolAddress:  sim.router_address ?? sim.pool_address ?? '',
+      };
+    } catch {
+      // API unavailable — fall back to local estimate so UX isn't blocked
+      newQuote = computeQuote(fromToken, toToken, fromAmountNum, slippage);
+    }
+
     const ask = newQuote.askAmount;
     const toAmountDisplay =
       toToken.decimals === 0 || ask >= 1_000_000
@@ -452,83 +460,93 @@ export const useSwapStore = create<SwapState>((set, get) => ({
             ? ask.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
             : ask.toLocaleString('en-US', { maximumFractionDigits: 8 });
 
-    set({
-      status: 'ready',
-      quote: newQuote,
-      toAmount: toAmountDisplay,
-    });
+    set({ status: 'ready', quote: newQuote, toAmount: toAmountDisplay });
   },
 
-  // ── executeSwap ─────────────────────────────────────────────────────────────
-  // Simulates the 2-step on-chain swap execution:
-  //   1. Confirming state (2-second blockchain simulation)
-  //   2. 15% random failure rate (simulates on-chain revert / slippage breach)
-  //   3. On success: update token balances, persist to history
-  executeSwap: async () => {
-    const { fromToken, toToken, fromAmount, quote, slippage } = get();
+  // ── executeSwap ──────────────────────────────────────────────────────────────
+  // Executes a real on-chain swap via STON.fi v2.1 + TON Connect wallet signing.
+  executeSwap: async (tonConnectUI: TonConnectUI) => {
+    const { fromToken, toToken, fromAmount, quote } = get();
     if (!quote || get().status !== 'ready') return;
 
     const fromAmountNum = parseFloat(fromAmount);
     if (isNaN(fromAmountNum) || fromAmountNum <= 0) return;
 
-    set({ status: 'confirming', errorMessage: '' });
-
-    // Simulate 2-second blockchain confirmation
-    await new Promise<void>((resolve) => setTimeout(resolve, 2000));
-
-    // Simulate 15% failure rate (slippage breach / on-chain revert)
-    const failed = Math.random() < 0.15;
-    if (failed) {
-      set({
-        status: 'error',
-        errorMessage: `Swap reverted: output amount fell below minimum (${slippage}% slippage tolerance exceeded). Try increasing your slippage or reducing the trade size.`,
-      });
+    const walletAddress = tonConnectUI.account?.address;
+    if (!walletAddress) {
+      set({ status: 'error', errorMessage: 'Connect your wallet before swapping.' });
       return;
     }
 
-    // Update token balances after successful swap
-    const updatedTokens = get().availableTokens.map((token) => {
-      if (token.symbol === fromToken.symbol) {
-        return { ...token, balance: token.balance - fromAmountNum };
-      }
-      if (token.symbol === toToken.symbol) {
-        return { ...token, balance: token.balance + quote.askAmount };
-      }
-      return token;
-    });
+    set({ status: 'confirming', errorMessage: '' });
 
-    // Build history record
-    const historyItem: SwapHistoryItem = {
-      id: `swap_${generateId()}`,
-      fromSymbol: fromToken.symbol,
-      toSymbol: toToken.symbol,
-      fromAmount: fromAmountNum,
-      toAmount: quote.askAmount,
-      exchangeRate: quote.exchangeRate,
-      priceImpact: quote.priceImpact,
-      fee: quote.fee,
-      executedAt: new Date().toISOString(),
-      txHash: generateTxHash(),
-    };
+    try {
+      const result = await executeRealSwap(
+        {
+          fromSymbol:    fromToken.symbol,
+          fromAddress:   fromToken.address,
+          fromDecimals:  fromToken.decimals,
+          fromAmount:    fromAmountNum,
+          toSymbol:      toToken.symbol,
+          toAddress:     toToken.address,
+          toDecimals:    toToken.decimals,
+          minAskAmount:  quote.minAskAmount,
+          userWalletAddress: walletAddress,
+        },
+        tonConnectUI,
+      );
 
-    set((state) => ({
-      status: 'success',
-      availableTokens: updatedTokens,
-      // Also update fromToken and toToken references to reflect new balances
-      fromToken: updatedTokens.find((t) => t.symbol === state.fromToken.symbol)!,
-      toToken: updatedTokens.find((t) => t.symbol === state.toToken.symbol)!,
-      swapHistory: [historyItem, ...state.swapHistory],
-    }));
-
-    // Auto-reset to idle after 3 seconds, clearing the form
-    setTimeout(() => {
-      set({
-        status: 'idle',
-        fromAmount: '',
-        toAmount: '',
-        quote: null,
+      // Optimistically update balances (real balance syncs on next loadWalletBalances call)
+      const updatedTokens = get().availableTokens.map((token) => {
+        if (token.symbol === fromToken.symbol) return { ...token, balance: Math.max(0, token.balance - fromAmountNum) };
+        if (token.symbol === toToken.symbol)   return { ...token, balance: token.balance + quote.askAmount };
+        return token;
       });
-    }, 3000);
+
+      const historyItem: SwapHistoryItem = {
+        id:           `swap_${generateId()}`,
+        fromSymbol:   fromToken.symbol,
+        toSymbol:     toToken.symbol,
+        fromAmount:   fromAmountNum,
+        toAmount:     quote.askAmount,
+        exchangeRate: quote.exchangeRate,
+        priceImpact:  quote.priceImpact,
+        fee:          quote.fee,
+        executedAt:   new Date().toISOString(),
+        txHash:       result.txHash,
+      };
+
+      set((state) => ({
+        status: 'success',
+        availableTokens: updatedTokens,
+        fromToken: updatedTokens.find((t) => t.symbol === state.fromToken.symbol)!,
+        toToken:   updatedTokens.find((t) => t.symbol === state.toToken.symbol)!,
+        swapHistory: [historyItem, ...state.swapHistory],
+      }));
+
+      // Sync to Supabase backend so the trade appears in history + affects P&L
+      recordTrade({
+        token: `${fromToken.symbol}/${toToken.symbol}`,
+        side:  'buy',
+        amount: fromAmountNum * fromToken.usdPrice,
+        entryPrice: fromToken.usdPrice,
+      }).catch(() => {});
+
+      // Reset form after 3s
+      setTimeout(() => set({ status: 'idle', fromAmount: '', toAmount: '', quote: null }), 3000);
+
+    } catch (err: any) {
+      const msg = err?.message ?? '';
+      // User rejected the wallet popup — don't show as an error, just go back to ready
+      if (msg.includes('User rejects') || msg.includes('cancelled') || msg.includes('Reject')) {
+        set({ status: 'ready', errorMessage: '' });
+      } else {
+        set({
+          status: 'error',
+          errorMessage: msg || 'Swap failed. Check your wallet balance and try again.',
+        });
+      }
+    }
   },
 
   // ── resetSwap ───────────────────────────────────────────────────────────────
@@ -545,5 +563,58 @@ export const useSwapStore = create<SwapState>((set, get) => ({
   // ── clearError ──────────────────────────────────────────────────────────────
   clearError: () => {
     set({ status: 'idle', errorMessage: '' });
+  },
+
+  // ── loadWalletBalances ────────────────────────────────────────────────────────
+  // Loads real token balances from TonAPI for the connected wallet.
+  // Updates `availableTokens`, `fromToken`, and `toToken` balances in place.
+  loadWalletBalances: async (walletAddress: string) => {
+    try {
+      // TON native balance
+      const accRes = await fetch(`https://tonapi.io/v2/accounts/${walletAddress}`, {
+        headers: { Accept: 'application/json' },
+      });
+      let tonBalance = 0;
+      if (accRes.ok) {
+        const acc = await accRes.json();
+        tonBalance = Number(acc.balance ?? 0) / 1e9; // nanotons → TON
+      }
+
+      // Jetton balances
+      const jetRes = await fetch(`https://tonapi.io/v2/accounts/${walletAddress}/jettons`, {
+        headers: { Accept: 'application/json' },
+      });
+      const jettonMap: Record<string, number> = {};
+      if (jetRes.ok) {
+        const jData = await jetRes.json();
+        const balances: any[] = jData.balances ?? [];
+        for (const item of balances) {
+          const addr = item.jetton?.address ?? item.jetton_address ?? '';
+          const raw  = Number(item.balance ?? 0);
+          const decs = Number(item.jetton?.decimals ?? 9);
+          if (addr) jettonMap[addr] = raw / 10 ** decs;
+        }
+      }
+
+      // Map onto STONFI_TOKENS by contract address
+      const updatedTokens = get().availableTokens.map((t) => {
+        if (t.symbol === 'TON') return { ...t, balance: tonBalance };
+        const match = Object.keys(jettonMap).find(
+          (addr) => addr.toLowerCase() === t.address.toLowerCase() ||
+                    // TonAPI returns raw addresses without bounceable prefix
+                    addr.replace(/-/g, '+').replace(/_/g, '/') === t.address.replace(/-/g, '+').replace(/_/g, '/'),
+        );
+        return match !== undefined ? { ...t, balance: jettonMap[match] } : t;
+      });
+
+      const cur = get();
+      set({
+        availableTokens: updatedTokens,
+        fromToken: updatedTokens.find((t) => t.symbol === cur.fromToken.symbol) ?? cur.fromToken,
+        toToken:   updatedTokens.find((t) => t.symbol === cur.toToken.symbol)   ?? cur.toToken,
+      });
+    } catch {
+      // Silent — swap still works, just shows 0 balances
+    }
   },
 }));
