@@ -159,13 +159,23 @@ export default function Home() {
           <span className="text-[10px] font-600 text-white/60 uppercase tracking-[0.1em]" style={{ fontWeight: 600 }}>
             {activeChallenge ? `${activeChallenge.tierName} · Phase ${activeChallenge.phase}` : 'Demo Account'}
           </span>
-          <div
-            className="flex items-center gap-1 px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(77,184,255,0.12)', border: '1px solid rgba(77,184,255,0.2)' }}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-green-400" style={{ boxShadow: '0 0 4px rgba(74,222,128,0.7)' }} />
-            <span className="text-[9px] font-700 text-blue-300 tracking-widest" style={{ fontWeight: 700 }}>EVALUATION</span>
-          </div>
+          {(() => {
+            const st = activeChallenge?.status;
+            const isFunded   = st === 'funded';
+            const isPassed   = st === 'completed';
+            const isFailed   = st === 'failed';
+            const label      = isFunded ? 'FUNDED' : isPassed ? 'PASSED' : isFailed ? 'FAILED' : 'EVALUATION';
+            const bg         = isFunded || isPassed ? 'rgba(34,197,94,0.14)' : isFailed ? 'rgba(239,68,68,0.14)' : 'rgba(77,184,255,0.12)';
+            const border     = isFunded || isPassed ? 'rgba(34,197,94,0.3)'  : isFailed ? 'rgba(239,68,68,0.3)'  : 'rgba(77,184,255,0.2)';
+            const dotColor   = isFunded || isPassed ? 'rgb(74,222,128)'      : isFailed ? 'rgb(239,68,68)'       : 'rgb(74,222,128)';
+            const textColor  = isFunded || isPassed ? 'rgb(134,239,172)'     : isFailed ? 'rgb(252,165,165)'     : 'rgb(147,197,253)';
+            return (
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: bg, border: `1px solid ${border}` }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor, boxShadow: `0 0 4px ${dotColor}` }} />
+                <span className="text-[9px] tracking-widest" style={{ fontWeight: 700, color: textColor }}>{label}</span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Balance */}
