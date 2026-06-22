@@ -8,8 +8,9 @@ import type {
 } from '@/types';
 import type { TonConnectUI } from '@tonconnect/ui';
 import { fetchStonfiMarket } from '@/lib/stonfi';
-import { executeRealSwap } from '@/lib/stonfiSwap';
 import { recordTrade } from '@/lib/tonfunded';
+// stonfiSwap is dynamically imported inside executeSwap — @ton/ton has Node.js
+// crypto deps that crash the app if imported at module load time in the browser.
 
 // ─── STON.fi token catalogue ──────────────────────────────────────────────────
 //
@@ -481,6 +482,7 @@ export const useSwapStore = create<SwapState>((set, get) => ({
     set({ status: 'confirming', errorMessage: '' });
 
     try {
+      const { executeRealSwap } = await import('@/lib/stonfiSwap');
       const result = await executeRealSwap(
         {
           fromSymbol:    fromToken.symbol,
