@@ -57,8 +57,11 @@ async function exchange(path: "auth-ton" | "auth-telegram", body: unknown): Prom
   const res = await fetch(`${FUNCTIONS}/${path}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });
-  const out = await res.json();
-  if (!res.ok || out?.error || !out?.session) throw new Error(out?.error ?? "auth failed");
+  let out: any;
+  try { out = await res.json(); } catch { out = {}; }
+  if (!res.ok || out?.error || !out?.session) {
+    throw new Error(out?.error ?? `[${res.status}] ${JSON.stringify(out).slice(0, 120)}`);
+  }
   await supabase.auth.setSession(out.session);
   return out.session;
 }
