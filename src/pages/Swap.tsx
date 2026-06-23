@@ -9,7 +9,6 @@ import {
   Zap,
   Info,
 } from 'lucide-react';
-import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useSwapStore } from '@/stores/swapStore';
 import { useChallengeStore } from '@/stores/challengeStore';
 import GetFundedGate from '@/components/GetFundedGate';
@@ -300,7 +299,6 @@ function QuoteInfoRow({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function Swap() {
-  const [tonConnectUI] = useTonConnectUI();
   const {
     fromToken,
     toToken,
@@ -323,7 +321,6 @@ export default function Swap() {
     executeSwap,
     resetSwap,
     clearError,
-    loadWalletBalances,
   } = useSwapStore();
 
   const activeChallenge = useChallengeStore((s) => s.activeChallenge);
@@ -352,12 +349,6 @@ export default function Swap() {
     return () => clearInterval(id);
   }, [refreshMarket]);
 
-  // Load real wallet balances when wallet connects/changes.
-  useEffect(() => {
-    const address = tonConnectUI.account?.address;
-    if (address) loadWalletBalances(address);
-  }, [tonConnectUI.account?.address, loadWalletBalances]);
-
   const handleConfirmSwap = async () => {
     // Risk lock: if the funded account was breached by the engine, block trading.
     if (activeChallenge?.status === 'failed') {
@@ -368,11 +359,8 @@ export default function Swap() {
       setConfirmOpen(false);
       return;
     }
-    await executeSwap(tonConnectUI);
+    await executeSwap();
     setConfirmOpen(false);
-    // Refresh real wallet balances after the swap lands
-    const address = tonConnectUI.account?.address;
-    if (address) setTimeout(() => loadWalletBalances(address), 5000);
   };
 
   const isQuoting = status === 'quoting';
