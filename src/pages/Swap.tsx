@@ -12,6 +12,7 @@ import {
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useSwapStore } from '@/stores/swapStore';
 import { useChallengeStore } from '@/stores/challengeStore';
+import { useTradingStore } from '@/stores/tradingStore';
 import GetFundedGate from '@/components/GetFundedGate';
 import TokenPickerSheet from '@/components/TokenPickerSheet';
 import SwapConfirmSheet from '@/components/SwapConfirmSheet';
@@ -352,11 +353,19 @@ export default function Swap() {
     return () => clearInterval(id);
   }, [refreshMarket]);
 
-  // Load real wallet balances when wallet connects/changes.
+  // Load real on-chain wallet balances (TON + jettons), then restore the virtual
+  // USDT balance for funded traders — on-chain USDT is irrelevant for prop trading.
   useEffect(() => {
     const address = tonConnectUI.account?.address;
-    if (address) loadWalletBalances(address);
-  }, [tonConnectUI.account?.address, loadWalletBalances]);
+    if (!address) return;
+    loadWalletBalances(address).then(() => {
+      if (activeChallenge) {
+        const { balance, positions } = useTradingStore.getState();
+        const invested = positions.reduce((s: number, p: any) => s + (p.initialValue ?? 0), 0);
+        useSwapStore.getState().syncUsdtBalance(Math.max(0, balance - invested));
+      }
+    });
+  }, [tonConnectUI.account?.address, loadWalletBalances, activeChallenge]);
 
   const handleConfirmSwap = async () => {
     // Risk lock: if the funded account was breached by the engine, block trading.
@@ -524,13 +533,11 @@ export default function Swap() {
 
         {/* Error */}
         {isError && errorMessage && (
-          <div className="flex items-start gap-2.5 rounded-xl p-3 page-enter" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)" }}>
-            <XCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-xs text-red-700 leading-relaxed">{errorMessage}</p>
-            </div>
-            <button onClick={clearError} className="text-red-400 active:text-red-600 flex-shrink-0">
-              <XCircle size={14} />
+          <div className="flex items-center gap-2.5 rounded-xl p-3 page-enter" style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)" }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+            <p className="text-xs text-secondary leading-relaxed flex-1">{errorMessage}</p>
+            <button onClick={clearError} className="text-tertiary active:text-secondary flex-shrink-0 p-0.5">
+              <XCircle size={13} />
             </button>
           </div>
         )}
@@ -546,36 +553,38 @@ export default function Swap() {
 
       {/* ── CTA ────────────────────────────────────────────────────────────── */}
       <div className="mt-4">
-        {!fromAmount || parseFloat(fromAmount) <= 0 ? (
-          <button disabled className="btn-primary opacity-40 pointer-events-none !py-4">
-            Enter an Amount
-          </button>
-        ) : isQuoting ? (
-          <button disabled className="btn-primary opacity-70 pointer-events-none !py-4">
-            <Loader2 size={16} className="animate-spin" />
-            Calculating Quote…
-          </button>
-        ) : canSwap ? (
-          <button onClick={() => setConfirmOpen(true)} className="btn-primary !py-4">
-            <Zap size={16} />
-            Swap {fromToken.symbol} → {toToken.symbol}
-          </button>
-        ) : isError ? (
-          <button
-            onClick={() => {
-              clearError();
-              fetchQuote();
-            }}
-            className="btn-secondary !py-4"
-          >
-            <RefreshCw size={15} />
-            Retry
-          </button>
-        ) : (
-          <button disabled className="btn-primary opacity-40 pointer-events-none !py-4">
-            Enter an Amount
-          </button>
-        )}
+        {(() => {
+          const amt = parseFloat(fromAmount);
+          const hasAmount = fromAmount && amt > 0;
+          if (!hasAmount) return (
+            <button disabled className="btn-primary opacity-40 pointer-events-none !py-4">
+              Enter an Amount
+            </button>
+          );
+          if (isQuoting) return (
+            <button disabled className="btn-primary opacity-70 pointer-events-none !py-4">
+              <Loader2 size={16} className="animate-spin" />
+              Calculating Quote…
+            </button>
+          );
+          if (canSwap) return (
+            <button onClick={() => setConfirmOpen(true)} className="btn-primary !py-4">
+              <Zap size={16} />
+              Swap {fromToken.symbol} → {toToken.symbol}
+            </button>
+          );
+          if (isError) return (
+            <button onClick={() => { clearError(); fetchQuote(); }} className="btn-secondary !py-4">
+              <RefreshCw size={15} />
+              Try Again
+            </button>
+          );
+          return (
+            <button disabled className="btn-primary opacity-40 pointer-events-none !py-4">
+              Enter an Amount
+            </button>
+          );
+        })()}
       </div>
 
       {/* ── Disclaimer ─────────────────────────────────────────────────────── */}

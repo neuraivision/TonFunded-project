@@ -20,4 +20,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: ['@ton/crypto', '@ton/core', '@ton/ton', '@ston-fi/sdk'],
+    esbuildOptions: {
+      define: { global: 'globalThis' },
+    },
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
+  },
 });

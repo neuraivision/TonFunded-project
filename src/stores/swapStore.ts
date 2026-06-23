@@ -265,8 +265,8 @@ function computeQuote(
 
 // ─── Initial defaults ─────────────────────────────────────────────────────────
 
-const defaultFrom = STONFI_TOKENS.find((t) => t.symbol === 'TON')!;
-const defaultTo = STONFI_TOKENS.find((t) => t.symbol === 'DOGS')!;
+const defaultFrom = STONFI_TOKENS.find((t) => t.symbol === 'USDT')!;
+const defaultTo = STONFI_TOKENS.find((t) => t.symbol === 'TON')!;
 
 const initialSwapHistory: SwapHistoryItem[] = [];
 
@@ -539,14 +539,17 @@ export const useSwapStore = create<SwapState>((set, get) => ({
 
     } catch (err: any) {
       const msg = err?.message ?? '';
-      // User rejected the wallet popup — don't show as an error, just go back to ready
       if (msg.includes('User rejects') || msg.includes('cancelled') || msg.includes('Reject')) {
         set({ status: 'ready', errorMessage: '' });
       } else {
-        set({
-          status: 'error',
-          errorMessage: msg || 'Swap failed. Check your wallet balance and try again.',
-        });
+        // Never surface raw technical errors (module resolution, network stack, etc.)
+        const friendly =
+          msg.includes('insufficient') || msg.includes('balance')
+            ? 'Insufficient wallet balance to cover this swap and gas fees.'
+            : msg.includes('network') || msg.includes('fetch') || msg.includes('timeout')
+              ? 'Network error. Check your connection and try again.'
+              : 'Swap failed. Please try again.';
+        set({ status: 'error', errorMessage: friendly });
       }
     }
   },
@@ -618,5 +621,21 @@ export const useSwapStore = create<SwapState>((set, get) => ({
     } catch {
       // Silent — swap still works, just shows 0 balances
     }
+  },
+
+  // ── syncUsdtBalance ─────────────────────────────────────────────────────────
+  // Called on every price tick and on initial load. Keeps the USDT "balance"
+  // in the swap page in sync with the live funded account balance.
+  syncUsdtBalance: (amount) => {
+    set((state) => {
+      const updatedTokens = state.availableTokens.map((t) =>
+        t.symbol === 'USDT' ? { ...t, balance: amount } : t,
+      );
+      const fromToken =
+        state.fromToken.symbol === 'USDT'
+          ? { ...state.fromToken, balance: amount }
+          : state.fromToken;
+      return { availableTokens: updatedTokens, fromToken };
+    });
   },
 }));
