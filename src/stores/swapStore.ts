@@ -397,14 +397,6 @@ export const useSwapStore = create<SwapState>((set, get) => ({
       set({ status: 'error', errorMessage: 'Enter a valid amount to swap.', quote: null, toAmount: '' });
       return;
     }
-    if (fromAmountNum > fromToken.balance && fromToken.balance > 0) {
-      set({
-        status: 'error',
-        errorMessage: `Insufficient ${fromToken.symbol} balance. You have ${fromToken.balance.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${fromToken.symbol}.`,
-        quote: null, toAmount: '',
-      });
-      return;
-    }
     if (fromToken.symbol === toToken.symbol) {
       set({ status: 'error', errorMessage: 'Cannot swap a token for itself.', quote: null, toAmount: '' });
       return;
