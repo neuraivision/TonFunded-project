@@ -1,16 +1,12 @@
-import { useEffect, lazy, useState } from 'react';
+import { useEffect, lazy } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import AppLayout from '@/components/AppLayout';
-import { ensureSession, loginWithWallet, supabase } from '@/lib/tonfunded';
-import { syncAllFromBackend, startRealtime } from '@/lib/backendSync';
+import { syncAllFromBackend } from '@/lib/backendSync';
 import { startPriceFeed, stopPriceFeed } from '@/lib/stonfi';
 import { useChallengeStore } from '@/stores/challengeStore';
 import { STONFI_TOKENS } from '@/stores/swapStore';
-import NamePromptModal from '@/components/NamePromptModal';
 
-// Lazy-load each page so the first paint only ships the shell + the current
-// route's chunk (much faster first load on mobile/LTE).
 const ExtensionAuth = lazy(() => import('@/pages/ExtensionAuth'));
 const Auth = lazy(() => import('@/pages/Auth'));
 const Home = lazy(() => import('@/pages/Home'));
@@ -24,57 +20,27 @@ const Help = lazy(() => import('@/pages/Help'));
 export default function App() {
   const [tonConnectUI] = useTonConnectUI();
   const { pathname } = useLocation();
-  const [showNamePrompt, setShowNamePrompt] = useState(false);
   const activeChallenge = useChallengeStore((s) => s.activeChallenge);
 
-  // Boot the backend once: authenticate, replace mock data with real data,
-  // then keep balance / drawdown / positions live via realtime.
-  // Fails gracefully (keeps mock data) outside Telegram / without a wallet.
-  // Skip on /extension-auth — that page manages its own auth flow.
+  // On mount: load data from the already-restored wallet (if any).
+  // Identity = TON wallet address. No Telegram auth needed.
   useEffect(() => {
     if (pathname === '/extension-auth' || pathname === '/auth') return;
-    let stop = () => {};
-    (async () => {
-      try {
-        const session = await ensureSession({ tonConnectUI });
-        await syncAllFromBackend();
-        if (session?.user?.id) {
-          stop = startRealtime(session.user.id);
-          // After auth, check if the user has set a display name yet.
-          const { data: profile } = await supabase
-            .from('users').select('name').eq('id', session.user.id).maybeSingle();
-          if (!profile?.name) setShowNamePrompt(true);
-        }
-      } catch (e) {
-        console.warn('[tonfunded] backend init skipped, using mock data:', e);
-      }
-    })();
-    return () => stop();
+    const addr = tonConnectUI.wallet?.account?.address;
+    syncAllFromBackend(addr ?? undefined).catch(console.warn);
   }, [tonConnectUI, pathname]);
 
-  // When wallet freshly connects (has a ton_proof), immediately switch the
-  // session to the wallet identity — this is the shared identity across
-  // Mini App, Terminal, and Extension.
+  // Re-sync when wallet connects or disconnects.
   useEffect(() => {
-    let stopRealtime = () => {};
-    const unsub = tonConnectUI.onStatusChange(async (wallet) => {
-      if (!wallet?.account?.address) return;
-      const item = wallet.connectItems?.tonProof;
-      if (!item || !("proof" in item)) return; // restored session — no proof available
-      try {
-        const session = await loginWithWallet(wallet);
-        await syncAllFromBackend();
-        stopRealtime();
-        if (session?.user?.id) stopRealtime = startRealtime(session.user.id);
-      } catch (e) {
-        console.warn('[wallet-switch]', e);
-      }
+    if (pathname === '/extension-auth' || pathname === '/auth') return;
+    const unsub = tonConnectUI.onStatusChange((wallet) => {
+      const addr = wallet?.account?.address;
+      syncAllFromBackend(addr ?? undefined).catch(console.warn);
     });
-    return () => { unsub(); stopRealtime(); };
-  }, [tonConnectUI]);
+    return unsub;
+  }, [tonConnectUI, pathname]);
 
   // Live STON.fi price feed — runs whenever there's an active challenge.
-  // Polls every 4s, updates open positions with real prices via applyLivePrices.
   useEffect(() => {
     const symbols = STONFI_TOKENS.map((t) => t.symbol);
     if (activeChallenge) {
@@ -86,10 +52,7 @@ export default function App() {
   }, [activeChallenge]);
 
   return (
-    <>
-      {showNamePrompt && <NamePromptModal onDone={() => setShowNamePrompt(false)} />}
     <Routes>
-      {/* Standalone — no nav shell */}
       <Route path="/extension-auth" element={<ExtensionAuth />} />
       <Route path="/auth" element={<Auth />} />
       <Route element={<AppLayout />}>
@@ -102,6 +65,5 @@ export default function App() {
         <Route path="/help" element={<Help />} />
       </Route>
     </Routes>
-    </>
   );
 }

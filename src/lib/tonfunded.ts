@@ -141,7 +141,28 @@ export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referr
 
 export const logout = () => supabase.auth.signOut();
 
-/* --------------------------- 3. Data fetching ----------------------------- */
+/* ----------------------- 3. Wallet-based lookup --------------------------- */
+
+/** Fetch challenge + performance data for a wallet address — no auth needed. */
+export async function getWalletStatus(address: string): Promise<{
+  found: boolean;
+  user?: { id: string; name?: string; username?: string };
+  challenge?: any;
+  perf?: any;
+  positions?: any[];
+} | null> {
+  try {
+    const res = await fetch(`${FUNCTIONS}/wallet-status`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address }),
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch { return null; }
+}
+
+/* --------------------------- 4. Data fetching ----------------------------- */
 export const getMyProfile = () => supabase.from("users").select("*").maybeSingle();
 export const getTiers = () =>
   supabase.from("risk_rules").select("*").eq("is_active", true).order("funded_amount");

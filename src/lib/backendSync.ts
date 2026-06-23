@@ -6,7 +6,7 @@
 // an instant placeholder until the first sync resolves, then gets overwritten.
 import {
   supabase, getTiers, getActiveChallenge, getLatestPerformance,
-  getOpenPositions, subscribeRisk,
+  getOpenPositions, subscribeRisk, getWalletStatus,
 } from "@/lib/tonfunded";
 import { useChallengeStore } from "@/stores/challengeStore";
 import { useTradingStore } from "@/stores/tradingStore";
@@ -174,6 +174,13 @@ async function refreshPayouts() {
   });
 }
 
+// Lookup by wallet address — no session needed.
+async function refreshByWallet(walletAddress: string) {
+  const status = await getWalletStatus(walletAddress);
+  if (!status?.found || !status.challenge) return;
+  apply(status.challenge, status.perf ?? null, status.positions ?? []);
+}
+
 // ─── public API ──────────────────────────────────────────────────────────────
 
 /** One-shot full load after login. Replaces mock data in all stores. */
@@ -215,12 +222,20 @@ async function refreshReferral() {
   }));
 }
 
-export async function syncAllFromBackend() {
+export async function syncAllFromBackend(walletAddress?: string) {
+  // Tiers are public — always load regardless of auth state.
   const { data: tiers } = await getTiers();
   if (tiers) useChallengeStore.setState({ tiers: tiers.map(mapTier) });
-  await refreshActive();
-  await refreshPayouts();
-  await refreshReferral();
+
+  if (walletAddress) {
+    // Primary path: look up by wallet address — no session needed.
+    await refreshByWallet(walletAddress);
+  } else {
+    // Fallback: session-based RLS queries (used when no wallet connected).
+    await refreshActive();
+    await refreshPayouts();
+    await refreshReferral();
+  }
 }
 
 /** Live updates. Returns an unsubscribe function. Call with the user id. */
