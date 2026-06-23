@@ -368,7 +368,6 @@ export default function Swap() {
   }, [tonConnectUI.account?.address, loadWalletBalances, activeChallenge]);
 
   const handleConfirmSwap = async () => {
-    // Risk lock: if the funded account was breached by the engine, block trading.
     if (activeChallenge?.status === 'failed') {
       useSwapStore.setState({
         status: 'error',
@@ -377,11 +376,39 @@ export default function Swap() {
       setConfirmOpen(false);
       return;
     }
+
+    // Snapshot before execution clears swap state
+    const snapFrom    = fromToken;
+    const snapTo      = toToken;
+    const snapAmount  = fromAmount;
+    const snapQuote   = quote;
+    const snapSlip    = slippage;
+
     await executeSwap(tonConnectUI);
     setConfirmOpen(false);
-    // Refresh real wallet balances after the swap lands
-    const address = tonConnectUI.account?.address;
-    if (address) setTimeout(() => loadWalletBalances(address), 5000);
+
+    // Open a live position in tradingStore so it appears on the Trading tab
+    // and the price feed updates P&L in real-time every 4 s.
+    if (useSwapStore.getState().status === 'success' && snapQuote) {
+      const fromAmountNum = parseFloat(snapAmount);
+      const usdValue      = fromAmountNum * snapFrom.usdPrice;
+
+      useTradingStore.getState().openPosition({
+        tokenName:    snapTo.symbol,
+        tokenPair:    `${snapTo.symbol}/USDT`,
+        direction:    'long',
+        entryPrice:   snapTo.usdPrice,
+        currentPrice: snapTo.usdPrice,
+        quantity:     snapQuote.askAmount,
+        leverage:     1,
+        slippage:     snapSlip,
+        breakevenSet: false,
+        highWaterMark: snapTo.usdPrice,
+        initialValue: usdValue,
+        openedAt:     new Date().toISOString(),
+        icon:         snapTo.logoUrl,
+      });
+    }
   };
 
   const isQuoting = status === 'quoting';
