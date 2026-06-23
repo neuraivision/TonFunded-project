@@ -94,10 +94,10 @@ export async function loginWithTonConnect(tonConnectUI: TonConnectUI, payload = 
   return loginWithWallet(wallet);
 }
 
-export async function loginWithTelegram(referralCode?: string) {
+export async function loginWithTelegram(referralCode?: string, walletAddress?: string) {
   const initData = window.Telegram?.WebApp?.initData ?? "";
   if (!initData) throw new Error("Not running inside Telegram");
-  return exchange("auth-telegram", { initData, referralCode });
+  return exchange("auth-telegram", { initData, referralCode, walletAddress });
 }
 
 export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referralCode?: string }) {
@@ -128,7 +128,10 @@ export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referr
     try { return await loginWithWallet(w); } catch (e) { console.warn('[ton-auth]', e); }
   }
   // Telegram initData auth (no popup); throws outside Telegram → app runs in mock mode.
-  return loginWithTelegram(opts?.referralCode);
+  // Pass the connected wallet address so auth-telegram can auto-merge any wallet-only
+  // account (e.g. created on the Terminal) into this Telegram account.
+  const walletAddr = w?.account?.address;
+  return loginWithTelegram(opts?.referralCode, walletAddr);
 }
 
 export const logout = () => supabase.auth.signOut();

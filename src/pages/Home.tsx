@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { useTradingStore } from '@/stores/tradingStore';
 import { useChallengeStore } from '@/stores/challengeStore';
 import WalletCard from '@/components/WalletCard';
@@ -11,34 +10,17 @@ import RecentActivity from '@/components/RecentActivity';
 import PayoutModal from '@/components/PayoutModal';
 import LegalFooter from '@/components/LegalFooter';
 import { formatPct } from '@/lib/utils';
-import { loginWithTonConnect } from '@/lib/tonfunded';
-import { syncAllFromBackend } from '@/lib/backendSync';
 import {
   Rocket, Banknote, Clock, LifeBuoy,
   TrendingUp, TrendingDown, Shield, Zap, ChevronRight,
-  Check, BarChart3, Wallet, Trophy, RefreshCw,
+  Check, BarChart3, Wallet, Trophy,
 } from 'lucide-react';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [tonConnectUI] = useTonConnectUI();
-  const connectedWallet = useTonWallet();
   const { balance, pnl, pnlPercent, startingBalance } = useTradingStore();
   const { activeChallenge, tiers } = useChallengeStore();
   const [payoutOpen, setPayoutOpen] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-
-  const verifyWallet = async () => {
-    setVerifying(true);
-    try {
-      await loginWithTonConnect(tonConnectUI);
-      await syncAllFromBackend();
-    } catch (e) {
-      console.warn('[verify-wallet]', e);
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   // Lowest eval fee, derived from the live tiers so this never goes stale.
   const minFee = tiers.length ? Math.min(...tiers.map((t) => t.fee)) : 0;
@@ -84,20 +66,6 @@ export default function Home() {
             <button onClick={() => navigate('/challenges')} className="btn-primary w-full mt-5">
               <Rocket size={18} /> Get Funded
             </button>
-
-            {/* If wallet already connected but challenge not loading — re-auth with fresh proof */}
-            {connectedWallet && (
-              <button
-                onClick={verifyWallet}
-                disabled={verifying}
-                className="w-full mt-2.5 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[12px] font-semibold transition-opacity active:opacity-70"
-                style={{ background: 'rgba(77,184,255,0.1)', border: '1px solid rgba(77,184,255,0.22)', color: '#4DB8FF' }}
-              >
-                <RefreshCw size={13} className={verifying ? 'animate-spin' : ''} />
-                {verifying ? 'Verifying wallet…' : 'Already funded? Verify wallet'}
-              </button>
-            )}
-
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-4 text-[11px] text-white/55">
               <span className="flex items-center gap-1.5"><Check size={13} style={{ color: '#4DB8FF' }} /> No deposit to trade</span>
               <span className="flex items-center gap-1.5"><Check size={13} style={{ color: '#4DB8FF' }} /> 80% profit split</span>
