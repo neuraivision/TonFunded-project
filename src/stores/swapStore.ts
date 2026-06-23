@@ -465,32 +465,15 @@ export const useSwapStore = create<SwapState>((set, get) => ({
     const fromAmountNum = parseFloat(fromAmount);
     if (isNaN(fromAmountNum) || fromAmountNum <= 0) return;
 
-    const walletAddress = tonConnectUI.account?.address;
-    if (!walletAddress) {
-      set({ status: 'error', errorMessage: 'Connect your wallet before swapping.' });
-      return;
-    }
-
     set({ status: 'confirming', errorMessage: '' });
 
     try {
-      const { executeRealSwap } = await import('@/lib/stonfiSwap');
-      const result = await executeRealSwap(
-        {
-          fromSymbol:    fromToken.symbol,
-          fromAddress:   fromToken.address,
-          fromDecimals:  fromToken.decimals,
-          fromAmount:    fromAmountNum,
-          toSymbol:      toToken.symbol,
-          toAddress:     toToken.address,
-          toDecimals:    toToken.decimals,
-          minAskAmount:  quote.minAskAmount,
-          userWalletAddress: walletAddress,
-        },
-        tonConnectUI,
-      );
+      // Challenge accounts trade on virtual capital with real STON.fi prices.
+      // No on-chain transaction required — execution is simulated, P&L is real.
+      await new Promise((r) => setTimeout(r, 1200));
 
-      // Optimistically update balances (real balance syncs on next loadWalletBalances call)
+      const txHash = generateTxHash();
+
       const updatedTokens = get().availableTokens.map((token) => {
         if (token.symbol === fromToken.symbol) return { ...token, balance: Math.max(0, token.balance - fromAmountNum) };
         if (token.symbol === toToken.symbol)   return { ...token, balance: token.balance + quote.askAmount };
@@ -507,7 +490,7 @@ export const useSwapStore = create<SwapState>((set, get) => ({
         priceImpact:  quote.priceImpact,
         fee:          quote.fee,
         executedAt:   new Date().toISOString(),
-        txHash:       result.txHash,
+        txHash,
       };
 
       set((state) => ({
@@ -518,31 +501,18 @@ export const useSwapStore = create<SwapState>((set, get) => ({
         swapHistory: [historyItem, ...state.swapHistory],
       }));
 
-      // Sync to Supabase backend so the trade appears in history + affects P&L
+      // Record trade in Supabase so it affects challenge P&L
       recordTrade({
-        token: `${fromToken.symbol}/${toToken.symbol}`,
-        side:  'buy',
-        amount: fromAmountNum * fromToken.usdPrice,
+        token:      `${fromToken.symbol}/${toToken.symbol}`,
+        side:       'buy',
+        amount:     fromAmountNum * fromToken.usdPrice,
         entryPrice: fromToken.usdPrice,
       }).catch(() => {});
 
-      // Reset form after 3s
       setTimeout(() => set({ status: 'idle', fromAmount: '', toAmount: '', quote: null }), 3000);
 
-    } catch (err: any) {
-      const msg = err?.message ?? '';
-      if (msg.includes('User rejects') || msg.includes('cancelled') || msg.includes('Reject')) {
-        set({ status: 'ready', errorMessage: '' });
-      } else {
-        // Never surface raw technical errors (module resolution, network stack, etc.)
-        const friendly =
-          msg.includes('insufficient') || msg.includes('balance')
-            ? 'Insufficient wallet balance to cover this swap and gas fees.'
-            : msg.includes('network') || msg.includes('fetch') || msg.includes('timeout')
-              ? 'Network error. Check your connection and try again.'
-              : 'Swap failed. Please try again.';
-        set({ status: 'error', errorMessage: friendly });
-      }
+    } catch {
+      set({ status: 'error', errorMessage: 'Swap failed. Please try again.' });
     }
   },
 
