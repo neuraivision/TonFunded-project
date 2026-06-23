@@ -25,6 +25,7 @@ export default function App() {
   const [tonConnectUI] = useTonConnectUI();
   const { pathname } = useLocation();
   const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const activeChallenge = useChallengeStore((s) => s.activeChallenge);
 
   // Boot the backend once: authenticate, replace mock data with real data,
@@ -46,7 +47,9 @@ export default function App() {
           if (!profile?.name) setShowNamePrompt(true);
         }
       } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         console.warn('[tonfunded] backend init skipped, using mock data:', e);
+        setAuthError(msg);
       }
     })();
     return () => stop();
@@ -88,6 +91,19 @@ export default function App() {
   return (
     <>
       {showNamePrompt && <NamePromptModal onDone={() => setShowNamePrompt(false)} />}
+      {authError && (
+        <div
+          onClick={() => setAuthError(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+            background: 'rgba(220,38,38,0.9)', color: '#fff', fontSize: 11,
+            padding: '8px 12px', textAlign: 'center', cursor: 'pointer',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          Auth error (tap to dismiss): {authError}
+        </div>
+      )}
     <Routes>
       {/* Standalone — no nav shell */}
       <Route path="/extension-auth" element={<ExtensionAuth />} />
