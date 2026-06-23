@@ -52,7 +52,9 @@ function MenuItem({
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 py-3 active:bg-surface-app transition-colors rounded-xl px-1"
+      disabled={!onClick}
+      className="w-full flex items-center gap-3 py-3 transition-colors rounded-xl px-1 disabled:cursor-default"
+      style={{ WebkitTapHighlightColor: onClick ? undefined : 'transparent' }}
     >
       <div
         className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0`}
@@ -75,7 +77,7 @@ function MenuItem({
         </span>
       )}
       {value && <span className="text-xs font-600 text-secondary mr-1">{value}</span>}
-      <ChevronRight size={14} className="text-tertiary" />
+      {onClick && <ChevronRight size={14} className="text-tertiary" />}
     </button>
   );
 }
@@ -467,7 +469,7 @@ export default function Profile() {
           label={isConnected ? `Wallet: ${truncatedAddress}` : 'Connect Wallet'}
           iconBg="rgba(77,184,255,0.1)"
           iconColor="#4DB8FF"
-          onClick={isConnected ? disconnect : connect}
+          onClick={isConnected ? undefined : connect}
           value={isConnected ? 'Connected' : undefined}
         />
       </div>
