@@ -112,11 +112,13 @@ export async function ensureSession(opts?: { tonConnectUI?: TonConnectUI; referr
     if (profile?.ton_address && !sameWallet(profile.ton_address, walletAddr)) {
       // Session belongs to a different user than the connected wallet — clear it.
       await supabase.auth.signOut();
-    } else if (profile?.ton_address && sameWallet(profile.ton_address, walletAddr)) {
-      return session; // session already matches wallet — all good
     }
+    // Do NOT return early when sameWallet is true — always fall through to
+    // loginWithTelegram so the wallet-merge runs on every boot. Without this,
+    // challenges created under the wallet-only account (e.g. via admin grant)
+    // are never transferred to the Telegram account.
   } else if (session) {
-    return session;
+    return session; // no wallet connected — existing session is fine as-is
   }
 
   // Do NOT auto-open the TON Connect modal on boot. Wallet auth happens only when
