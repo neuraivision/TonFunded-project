@@ -2,11 +2,16 @@ import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
+import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
-  plugins: [inspectAttr(), react()],
+  plugins: [
+    nodePolyfills({ include: ['buffer', 'crypto', 'stream', 'util', 'events'] }),
+    inspectAttr(),
+    react(),
+  ],
   server: {
     port: 3000,
   },

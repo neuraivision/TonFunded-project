@@ -317,9 +317,11 @@ export interface SwapState {
   flipTokens: () => void;
   setSlippage: (slippage: number) => void;
   fetchQuote: () => Promise<void>;
-  executeSwap: () => Promise<void>;
+  executeSwap: (tonConnectUI: import('@tonconnect/ui').TonConnectUI) => Promise<void>;
   resetSwap: () => void;
   clearError: () => void;
   /** Pulls live USD prices + icons from STON.fi and merges them into state. */
   refreshMarket: () => Promise<void>;
+  /** Load real token balances from TonAPI for the connected wallet address. */
+  loadWalletBalances: (walletAddress: string) => Promise<void>;
 }
