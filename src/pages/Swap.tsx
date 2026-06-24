@@ -614,15 +614,6 @@ export default function Swap() {
         })()}
       </div>
 
-      {/* ── Disclaimer ─────────────────────────────────────────────────────── */}
-      <div className="flex items-start gap-2 mt-4 px-1">
-        <Info size={12} className="text-tertiary flex-shrink-0 mt-0.5" />
-        <p className="text-[11px] text-tertiary leading-relaxed">
-          Swap execution is simulated within your challenge account. Live on-chain
-          settlement activates upon reaching funded trader status.
-        </p>
-      </div>
-
       {/* ── Low-liquidity notice ────────────────────────────────────────────── */}
       <div className="mt-4 rounded-xl p-3.5 flex items-start gap-2.5" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.15)" }}>
         <Zap size={14} className="text-amber-500 flex-shrink-0 mt-0.5" />

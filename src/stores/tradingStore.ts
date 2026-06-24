@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { useSwapStore } from '@/stores/swapStore';
+import { useChallengeStore } from '@/stores/challengeStore';
 import type {
   Position,
   DrawdownMetric,
@@ -54,6 +56,9 @@ interface TradingState {
 
   // Computed performance stats
   stats: PerformanceStats;
+
+  // Tracks closed-trade profits so balance doesn't reset when positions close
+  realizedPnl: number;
 
   // Drawdown alert — set when daily drawdown crosses 80%
   drawdownAlert: string | null;
@@ -161,6 +166,23 @@ function computeStats(records: TradeRecord[]): PerformanceStats {
   };
 }
 
+// Syncs USDT swap balance and challenge profit progress after any position close.
+function syncPortfolio(state: TradingState) {
+  const openPnl = state.positions.reduce((s, p) => s + p.pnl, 0);
+  const totalPnl = state.realizedPnl + openPnl;
+  const newBalance = state.startingBalance + totalPnl;
+  const invested = state.positions.reduce((s, p) => s + p.initialValue, 0);
+  useSwapStore.getState().syncUsdtBalance(Math.max(0, newBalance - invested));
+  const ch = useChallengeStore.getState().activeChallenge;
+  if (ch) {
+    const profitCurrent = Math.max(0, totalPnl);
+    useChallengeStore.getState().updateProgress({
+      profitCurrent,
+      percentComplete: Math.min(100, parseFloat(((profitCurrent / ch.progress.profitTarget) * 100).toFixed(1))),
+    });
+  }
+}
+
 // ─── Mock initial data ────────────────────────────────────────────────────────
 
 const initialPositions: Position[] = [];
@@ -183,6 +205,7 @@ export const useTradingStore = create<TradingState>((set, get) => ({
   overallDrawdown: { current: 0, limit: 1000, percentOfLimit: 0 },
   profitTarget: { current: 0, target: 1000, percentComplete: 0 },
 
+  realizedPnl: 0,
   positions: initialPositions,
   tradingHistory: initialHistory,
   tradeRecords: initialTradeRecords,
@@ -241,8 +264,12 @@ export const useTradingStore = create<TradingState>((set, get) => ({
         positions: state.positions.filter((p) => p.id !== id),
         tradeRecords: newRecords,
         stats: computeStats(newRecords),
+        realizedPnl: state.realizedPnl + pos.pnl,
       };
     });
+
+    // Sync USDT balance and challenge progress immediately after close
+    syncPortfolio(get());
 
     get().addActivity({
       type: 'trade_close',
@@ -301,8 +328,11 @@ export const useTradingStore = create<TradingState>((set, get) => ({
         ),
         tradeRecords: newRecords,
         stats: computeStats(newRecords),
+        realizedPnl: state.realizedPnl + pnlRealized,
       };
     });
+
+    syncPortfolio(get());
 
     get().addActivity({
       type: 'trade_close',
@@ -341,8 +371,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
         };
       });
 
-      // Recalculate total unrealised PnL
-      const totalPnl = updatedPositions.reduce((sum, p) => sum + p.pnl, 0);
+      const openPnl = updatedPositions.reduce((sum, p) => sum + p.pnl, 0);
+      const totalPnl = state.realizedPnl + openPnl;
       const newBalance = state.startingBalance + totalPnl;
       const overallLoss = Math.max(0, state.startingBalance - newBalance);
       const overallPct = (overallLoss / state.startingBalance) * 100;
@@ -389,7 +419,8 @@ export const useTradingStore = create<TradingState>((set, get) => ({
         };
       });
 
-      const totalPnl = updatedPositions.reduce((sum, p) => sum + p.pnl, 0);
+      const openPnl = updatedPositions.reduce((sum, p) => sum + p.pnl, 0);
+      const totalPnl = state.realizedPnl + openPnl;
       const newBalance = state.startingBalance + totalPnl;
       const overallLoss = Math.max(0, state.startingBalance - newBalance);
       const overallPct = (overallLoss / state.startingBalance) * 100;
@@ -399,6 +430,19 @@ export const useTradingStore = create<TradingState>((set, get) => ({
         dailyPct >= 80 && !state.drawdownAlert
           ? `Daily drawdown at ${dailyPct.toFixed(0)}% of limit — reduce exposure now`
           : state.drawdownAlert;
+
+      // Sync USDT balance and challenge progress on every price tick
+      const invested = updatedPositions.reduce((s, p) => s + p.initialValue, 0);
+      const availableUsdt = Math.max(0, parseFloat((newBalance - invested).toFixed(2)));
+      useSwapStore.getState().syncUsdtBalance(availableUsdt);
+      const ch = useChallengeStore.getState().activeChallenge;
+      if (ch) {
+        const profitCurrent = Math.max(0, totalPnl);
+        useChallengeStore.getState().updateProgress({
+          profitCurrent,
+          percentComplete: Math.min(100, parseFloat(((profitCurrent / ch.progress.profitTarget) * 100).toFixed(1))),
+        });
+      }
 
       return {
         positions: updatedPositions,
